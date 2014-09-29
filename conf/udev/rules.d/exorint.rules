@@ -1,0 +1,2 @@
+# Create a symlink to the pwm-beeper input device
+SUBSYSTEMS=="input", KERNEL=="event[0-9]*", KERNELS=="input[0-9]*", ATTRS{name}=="pwm-beeper", SYMLINK+="input/beeper"
