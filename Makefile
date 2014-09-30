@@ -4,8 +4,13 @@ DESTDIR ?= /
 all:
 .PHONY: all
 
-install: install-net install-udev install-x11
+install: install-formfactor install-net install-udev install-x11
 .PHONY: install
+
+install-formfactor:
+	install -d $(DESTDIR)/etc/formfactor
+	install -m 0644 conf/formfactor/* $(DESTDIR)/etc/formfactor
+.PHONY: install-formfactor
 
 install-net:
 	install -d $(DESTDIR)/etc/network
