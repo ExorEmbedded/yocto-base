@@ -4,7 +4,7 @@ DESTDIR ?= /
 all:
 .PHONY: all
 
-install: install-formfactor install-net install-udev install-x11
+install: install-formfactor install-net install-udev install-profile install-x11
 .PHONY: install
 
 install-formfactor:
@@ -21,6 +21,11 @@ install-udev:
 	install -d $(DESTDIR)/etc/udev/rules.d
 	install -m 0644 conf/udev/rules.d/*.rules $(DESTDIR)/etc/udev/rules.d/
 .PHONY: install-udev
+
+install-profile:
+	install -d $(DESTDIR)/etc/profile.d
+	install -m 0755 conf/profile.d/* $(DESTDIR)/etc/profile.d
+.PHONY: install-profile
 
 install-x11:
 	install -d $(DESTDIR)/etc/X11/Xsession.d
