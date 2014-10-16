@@ -4,8 +4,16 @@ DESTDIR ?= /
 all:
 .PHONY: all
 
-install: install-formfactor install-net install-udev install-profile install-x11
+install: install-conf install-scripts
 .PHONY: install
+
+install-conf: install-formfactor install-net install-udev install-profile install-x11
+.PHONY: install-conf
+
+install-scripts:
+	install -d $(DESTDIR)/usr/bin
+	install -m 0755 scripts/* $(DESTDIR)/usr/bin
+.PHONY: install-scripts
 
 install-formfactor:
 	install -d $(DESTDIR)/etc/formfactor

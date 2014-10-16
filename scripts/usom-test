@@ -1,0 +1,186 @@
+#!/bin/bash
+
+#
+# Environment Variables:
+#   VERBOSE=1
+#
+
+#
+# Main entry point for tests
+#
+run()
+{
+    msg "Starting tests"
+
+    test_pkgs
+    test_procs
+    test_files
+
+    msg "All tests passed."
+}
+
+#
+# Utilities
+#
+msg()
+{
+    echo "# $@" 1>&2
+}
+
+chat()
+{
+    [ "${VERBOSE}" = "1" ] && msg $@
+}
+
+die()
+{
+    [ $# -gt 0 ] && msg "$@"
+
+    exit 1
+}
+
+wrap()
+{
+    chat "Executing '$@'"
+
+    $@ > /dev/null
+
+    RC=$?
+    [ ${RC} -eq 0 ] || die "[KO] Failed execution of '$@'!"
+}
+
+#
+# Test definitions
+#
+
+test_pkgs()
+{
+    msg "Testing packages"
+
+    for pkg in ${PKGS}; do
+        wrap test_pkg ${pkg}
+    done
+}
+
+test_procs()
+{
+    msg "Testing processes"
+
+    for proc in ${PROCS}; do
+        wrap test_proc ${proc}
+    done
+}
+
+test_files()
+{
+    msg "Testing files"
+
+    for file in ${FILES}; do
+        wrap test -e ${file}
+    done
+}
+
+test_pkg()
+{
+    PKG=$1
+
+    wrap rpm -q ${PKG}
+}
+
+test_proc()
+{
+    PROC=$1
+
+    wrap pidof ${PROC}
+}
+
+#
+# Environment
+#
+
+PKGS=""
+PKGS="${PKGS} avahi-daemon"
+PKGS="${PKGS} base-files"
+PKGS="${PKGS} base-git"
+PKGS="${PKGS} base-passwd"
+PKGS="${PKGS} bash"
+PKGS="${PKGS} busybox"
+PKGS="${PKGS} diffutils"
+PKGS="${PKGS} e2fsprogs-mke2fs"
+PKGS="${PKGS} e2fsprogs-e2fsck"
+PKGS="${PKGS} elfutils"
+PKGS="${PKGS} epad-git"
+PKGS="${PKGS} ethtool"
+PKGS="${PKGS} gawk"
+PKGS="${PKGS} gdb"
+PKGS="${PKGS} gdbserver"
+PKGS="${PKGS} grep"
+PKGS="${PKGS} i2c-tools"
+PKGS="${PKGS} init-ifupdown"
+PKGS="${PKGS} initscripts"
+PKGS="${PKGS} iptables"
+PKGS="${PKGS} iputils"
+PKGS="${PKGS} jmuconfig"
+PKGS="${PKGS} jmuconfig-app"
+PKGS="${PKGS} kernel-modules"
+PKGS="${PKGS} memtester"
+PKGS="${PKGS} metacity"
+PKGS="${PKGS} minicom"
+PKGS="${PKGS} mtd-utils"
+PKGS="${PKGS} net-tools"
+PKGS="${PKGS} netbase"
+PKGS="${PKGS} nginx"
+PKGS="${PKGS} nodejs"
+PKGS="${PKGS} openssh-ssh"
+PKGS="${PKGS} openssh-sftp-server"
+PKGS="${PKGS} openssl"
+PKGS="${PKGS} oprofile"
+PKGS="${PKGS} pciutils"
+PKGS="${PKGS} perl"
+PKGS="${PKGS} portmap"
+PKGS="${PKGS} procps"
+PKGS="${PKGS} psplash-git"
+PKGS="${PKGS} sed"
+PKGS="${PKGS} setserial"
+PKGS="${PKGS} strace"
+PKGS="${PKGS} sysfsutils"
+PKGS="${PKGS} sysvinit"
+PKGS="${PKGS} tcpdump"
+PKGS="${PKGS} tslib-conf"
+PKGS="${PKGS} udev"
+PKGS="${PKGS} usbutils"
+PKGS="${PKGS} util-linux"
+PKGS="${PKGS} wget"
+PKGS="${PKGS} xeyes"
+PKGS="${PKGS} xev"
+PKGS="${PKGS} xinput-calibrator"
+PKGS="${PKGS} xserver-xf86-config"
+
+PROCS=""
+PROCS="${PROCS} avahi-daemon"
+PROCS="${PROCS} dbus-daemon"
+PROCS="${PROCS} ifplugd"
+PROCS="${PROCS} init"
+PROCS="${PROCS} nginx"
+PROCS="${PROCS} node"
+PROCS="${PROCS} syslogd"
+PROCS="${PROCS} udevd"
+PROCS="${PROCS} Xorg"
+
+FILES=""
+FILES="${FILES} /tmp"
+FILES="${FILES} /proc"
+FILES="${FILES} /dev/mmcblk1p1"
+FILES="${FILES} /dev/mmcblk1p2"
+FILES="${FILES} /dev/mmcblk1p3"
+FILES="${FILES} /dev/mmcblk1p4"
+FILES="${FILES} /dev/mmcblk1p5"
+FILES="${FILES} /dev/mmcblk1p6"
+
+#
+# Main
+#
+
+run
+
+exit 0
