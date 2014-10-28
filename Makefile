@@ -26,8 +26,8 @@ install-net:
 .PHONY: install-net
 
 install-udev:
-	install -d $(DESTDIR)/etc/udev/rules.d
-	install -m 0644 conf/udev/rules.d/*.rules $(DESTDIR)/etc/udev/rules.d/
+	install -d $(DESTDIR)/etc/udev/
+	rsync -av conf/udev/ $(DESTDIR)/etc/udev/
 .PHONY: install-udev
 
 install-profile:
