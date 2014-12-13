@@ -4,7 +4,7 @@ DESTDIR ?= /
 all:
 .PHONY: all
 
-install: install-conf install-scripts
+install: install-conf install-scripts install-initd
 .PHONY: install
 
 install-conf: install-formfactor install-net install-udev install-profile install-x11
@@ -39,3 +39,8 @@ install-x11:
 	install -d $(DESTDIR)/etc/X11/Xsession.d
 	install -m 0755 conf/X11/Xsession.d/* $(DESTDIR)/etc/X11/Xsession.d/
 .PHONY: install-x11
+
+install-initd:
+	install -d $(DESTDIR)/etc/init.d/
+	install -m 0755 conf/init.d/* $(DESTDIR)/etc/init.d
+.PHONY: install-initd

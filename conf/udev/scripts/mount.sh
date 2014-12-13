@@ -28,6 +28,8 @@ automount() {
 		name="$myname"
 	fi  
 
+	name=${name,,}
+
 	! test -d "/mnt/$name" && mkdir -p "/mnt/$name"
 	# Silent util-linux's version of mounting auto
 	if [ "x`readlink $MOUNT`" = "x/bin/mount.util-linux" ] ;
@@ -86,6 +88,8 @@ if [ "$ACTION" = "remove" ] && [ -x "$UMOUNT" ] && [ -n "$DEVNAME" ]; then
 	else
 		name="$myname"
 	fi  
+
+	name=${name,,}
 
 	test -e "/tmp/.automount-$name" && rm_dir "/mnt/$name"
 fi
