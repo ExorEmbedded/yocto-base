@@ -64,10 +64,10 @@ fi
 
 # If shadow in final etc partition is not a link to a valid file... copy /etc/shadow from original rootfs to the factory 
 # partition and make a link to it in final etc partition
+if [ ! -e $FACTORYTMPMNT'shadow' ] ; then
+  cp -a /etc/shadow $FACTORYTMPMNT'shadow'
+fi
 if [ ! -L $ETCTMPMNT'shadow' ]; then
-  if [ ! -e $FACTORYTMPMNT'shadow' ] ; then
-    cp -a /etc/shadow $FACTORYTMPMNT'shadow'
-  fi
   ln -s -b $FACTORYTMPMNT'shadow' $ETCTMPMNT'shadow'
   chgrp shadow /etc/shadow
   sync
