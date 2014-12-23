@@ -1,6 +1,15 @@
-CONFIG ?= mainos
 DESTDIR ?= /
-SRCDIRS = files/common files/$(CONFIG)
+SRCDIRS = files/common 
+
+ifeq ($(CONFIG), mainos)
+    SRCDIRS += files/mainos
+else
+ifeq ($(CONFIG), configos)
+    SRCDIRS += files/configos
+else
+    SRCDIRS = files
+endif
+endif
 
 all:
 .PHONY: all
