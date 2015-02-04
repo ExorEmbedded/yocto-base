@@ -177,3 +177,8 @@ startup() {
 #    	umount -l /mnt/.psplash
 #    fi
 #fi
+
+# blank screen on exit
+if [ "x$runlevel" != "xS" ]; then
+	cat /dev/zero > /dev/fb0
+fi
