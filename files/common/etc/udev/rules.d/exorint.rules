@@ -13,8 +13,9 @@
 # %% the '%' char itself
 #
 
-# Create a symlink to the pwm-beeper input device
-SUBSYSTEMS=="input", KERNEL=="event[0-9]*", KERNELS=="input[0-9]*", ATTRS{name}=="pwm-beeper", SYMLINK+="input/beeper"
+#
+# File System
+#
 
 # USB stick automounting
 KERNEL=="sda1", SUBSYSTEMS=="usb", ENV{myname}="usbmemory"
@@ -45,9 +46,31 @@ KERNEL=="mmcblk0p[2-9]", SUBSYSTEM=="block", ENV{myname}="sdcardp%n"
 ACTION=="add", KERNEL=="mmcblk0p[0-9]", SUBSYSTEM=="block", RUN+="/etc/udev/scripts/mount.sh"
 ACTION=="remove", KERNEL=="mmcblk0p[0-9]", SUBSYSTEM=="block", RUN+="/etc/udev/scripts/mount.sh"
 
+#
+# Communication
+#
+
+# Create a symlink to the pwm-beeper input device
+SUBSYSTEMS=="input", KERNEL=="event[0-9]*", KERNELS=="input[0-9]*", ATTRS{name}=="pwm-beeper", SYMLINK+="input/beeper"
+
 # Create symlinks for uart ports (dev/ttyO0 -> dev/com1, dev/ttyO1 -> dev/com2, ...)
 KERNEL=="ttyO0", SUBSYSTEM=="tty", SYMLINK="com1"
 KERNEL=="ttyO1", SUBSYSTEM=="tty", SYMLINK="com2"
 KERNEL=="ttyO2", SUBSYSTEM=="tty", SYMLINK="com3"
 KERNEL=="ttyO3", SUBSYSTEM=="tty", SYMLINK="com4"
 KERNEL=="ttyO4", SUBSYSTEM=="tty", SYMLINK="com5"
+
+# All other communication devices belong to 'comm' group (also plain 'user' belongs to it)
+KERNEL=="gpio*", PROGRAM="/bin/sh -c '\
+    /bin/chgrp -R comm /sys/class/gpio; /bin/chmod -R 770 /sys/class/gpio; \
+    /bin/chgrp -R comm /sys/devices/virtual/gpio; /bin/chmod -R 770 /sys/devices/virtual/gpio; \
+    '"
+SUBSYSTEM=="spidev", GROUP="comm", MODE="0660"
+SUBSYSTEM=="i2c-dev", GROUP="comm", MODE="0660"
+
+#
+# Video
+#
+
+SUBSYSTEM=="backlight", RUN+="/bin/chgrp video /sys/class/backlight/%k/brightness /sys/class/backlight/%k/bl_power", \
+    RUN+="/bin/chmod 664 /sys/class/backlight/%k/brightness /sys/class/backlight/%k/bl_power"
