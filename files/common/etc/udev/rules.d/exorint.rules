@@ -34,10 +34,10 @@ SUBSYSTEM=="block", KERNEL=="sdb1", ACTION=="add", RUN+="/etc/udev/scripts/usb_a
 SUBSYSTEM=="block", KERNEL=="sdc1", ACTION=="add", RUN+="/etc/udev/scripts/usb_autorun.sh usbmemory3"
 
 # auto-mount EMMC
-ACTION=="add", KERNEL=="mmcblk1p6", SUBSYSTEM=="block", RUN+="/etc/udev/scripts/mount.sh",
+ACTION=="add", KERNEL=="mmcblk1p[0-5]", SUBSYSTEM=="block", RUN+="/etc/udev/scripts/mount.sh"
+ACTION=="add", KERNEL=="mmcblk1p6", SUBSYSTEM=="block", RUN+="/etc/udev/scripts/mount.sh", \
     RUN+="/etc/udev/scripts/datapart_setup.sh"
-ACTION=="add", KERNEL=="mmcblk1p[0-9]", SUBSYSTEM=="block", RUN+="/etc/udev/scripts/mount.sh"
-ACTION=="remove", KERNEL=="mmcblk1p[0-9]", SUBSYSTEM=="block", RUN+="/etc/udev/scripts/mount.sh"
+ACTION=="remove", KERNEL=="mmcblk1p[0-6]", SUBSYSTEM=="block", RUN+="/etc/udev/scripts/mount.sh"
 
 # Auto-mount any SD card
 KERNEL=="mmcblk0p1", SUBSYSTEM=="block", ENV{myname}="sdcard"
