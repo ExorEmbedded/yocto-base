@@ -7,7 +7,7 @@
 
 MOUNT="/bin/mount"
 PMOUNT="/usr/bin/pmount"
-UMOUNT="/bin/umount"
+UMOUNT="/bin/umount -l" # lazy umount in case files are in use
 for line in `grep -v ^# /etc/udev/mount.blacklist`
 do
 	if [ ` expr match "$DEVNAME" "$line" ` -gt 0 ];
