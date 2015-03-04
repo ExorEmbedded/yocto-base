@@ -59,6 +59,11 @@ if [ ! -d $ETCTMPMNT'init.d' ]; then
   sync
 fi
 
+# Get etc and bsp versions
+[ ! -f "$ETCTMPMNT/migrations/current_version" ] && mkdir -p $ETCTMPMNT/migrations && touch $ETCTMPMNT/migrations/current_version
+etcVers="$( cat $ETCTMPMNT/migrations/current_version )"
+bspVers="$( cat /boot/version )"
+
 #
 #     Handle the user partition: mount it (format+mount if mount fails), copy the password file (shadow) 
 #     if not yet there and make a link to it in the final /etc directory.
@@ -97,6 +102,23 @@ rmdir $ETCTMPMNT
 
 # Switch to etc partition
 mount $ETCPARTITION /etc 
+
+# Compare etc version with bsp version
+if [ ! "$bspVers" = "$etcVers" ]; then
+        mkdir -p /mnt/tmpRoot
+        mount -o bind / /mnt/tmpRoot
+        mount -t tmpfs -o rw tmpfs /tmp
+        # Do migration
+        /etc/init.d/postupdate.sh /mnt/tmpRoot/etc/migrations
+        rm -rf /etc/*
+        # Copy updated etc file
+        cp -a /mnt/tmpRoot/etc/. /etc
+        # Restore preserved files
+        cp -a /tmp/preservedFiles/. /
+        umount /mnt/tmpRoot
+        rm -rf /mnt/tmpRoot
+        umount /tmp
+fi
 
 # Mount configos and data filesystems
 if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
