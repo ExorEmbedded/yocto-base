@@ -36,6 +36,11 @@ trap ":" INT QUIT TSTP
 #      Verify mmcblk1p5 is populated (if no, copy /etc to it) and mount it over /etc 
 # 
 mount -t tmpfs -o rw tmpfs /mnt
+
+if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
+  fsck -a $ETCPARTITION
+fi
+
 mkdir $ETCTMPMNT
 mount $ETCPARTITION $ETCTMPMNT
 
@@ -54,6 +59,10 @@ fi
 #
 
 # Mount the factory partition (if mount fails, perform format+mount)
+if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
+  fsck -a $FACTORYPARTITION
+fi
+
 mkdir $FACTORYTMPMNT
 mount $FACTORYPARTITION $FACTORYTMPMNT
 
@@ -82,6 +91,12 @@ rmdir $ETCTMPMNT
 
 # Switch to etc partition
 mount $ETCPARTITION /etc 
+
+# Mount configos and data filesystems
+if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
+  fsck -a $CONFIGOSPARTITION
+  fsck -a $DATAPARTITION
+fi
 
 
 #

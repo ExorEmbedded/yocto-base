@@ -8,6 +8,12 @@
 MOUNT="/bin/mount"
 PMOUNT="/usr/bin/pmount"
 UMOUNT="/bin/umount -l" # lazy umount in case files are in use
+FSCK="/sbin/fsck"
+
+# Otherwise fsck won't find some executables
+PATH="/usr/gnu/bin:/usr/local/bin:/bin:/usr/bin:.:/usr/sbin"
+export PATH
+
 for line in `grep -v ^# /etc/udev/mount.blacklist`
 do
 	if [ ` expr match "$DEVNAME" "$line" ` -gt 0 ];
@@ -58,6 +64,8 @@ rm_dir() {
 }
 
 if [ "$ACTION" = "add" ] && [ -n "$DEVNAME" ] && [ -n "$ID_FS_TYPE" ]; then
+	# Do not perform fsck if device is already mounted
+	[ -z "$( grep "$DEVNAME" /etc/mtab)" ] && $FSCK -a $DEVNAME
 	if [ -x "$PMOUNT" ]; then
 		$PMOUNT $DEVNAME 2> /dev/null
 	elif [ -x $MOUNT ]; then
