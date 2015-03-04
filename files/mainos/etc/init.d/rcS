@@ -12,6 +12,8 @@ prevlevel=N
 umask 022
 export PATH runlevel prevlevel
 
+ROOTTMPMNT=/mnt/tmpRoot
+
 DATAPARTITION=/dev/mmcblk1p6
 DATATMPMNT=/mnt/data/
 
@@ -60,8 +62,7 @@ if [ ! -d $ETCTMPMNT'init.d' ]; then
 fi
 
 # Get etc and bsp versions
-[ ! -f "$ETCTMPMNT/migrations/current_version" ] && mkdir -p $ETCTMPMNT/migrations && touch $ETCTMPMNT/migrations/current_version
-etcVers="$( cat $ETCTMPMNT/migrations/current_version )"
+etcVers="$( cat $ETCTMPMNT/migrations/version )"
 bspVers="$( cat /boot/version )"
 
 #
@@ -105,19 +106,20 @@ mount $ETCPARTITION /etc
 
 # Compare etc version with bsp version
 if [ ! "$bspVers" = "$etcVers" ]; then
-        mkdir -p /mnt/tmpRoot
-        mount -o bind / /mnt/tmpRoot
-        mount -t tmpfs -o rw tmpfs /tmp
-        # Do migration
-        /etc/init.d/postupdate.sh /mnt/tmpRoot/etc/migrations
-        rm -rf /etc/*
-        # Copy updated etc file
-        cp -a /mnt/tmpRoot/etc/. /etc
-        # Restore preserved files
-        cp -a /tmp/preservedFiles/. /
-        umount /mnt/tmpRoot
-        rm -rf /mnt/tmpRoot
-        umount /tmp
+        mkdir -p $ROOTTMPMNT
+        mount -o bind / $ROOTTMPMNT
+	if [ -f "$ROOTTMPMNT/etc/migrations/version" ]; then
+        	mount -t tmpfs -o rw tmpfs /tmp
+        	# Do migration
+        	/etc/init.d/postupdate.sh $ROOTTMPMNT/etc/migrations
+        	rm -rf /etc/*
+        	# Copy updated etc file
+        	cp -a $ROOTTMPMNT/etc/. /etc
+        	# Restore preserved files
+        	cp -a /tmp/preservedFiles/. /
+	fi
+       	umount $ROOTTMPMNT
+       	rm -rf $ROOTTMPMNT
 fi
 
 # Mount configos and data filesystems
