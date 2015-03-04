@@ -47,6 +47,10 @@ umount $ETCTMPMNT
 rmdir $ETCTMPMNT
 
 # Mount the factory partition (if mount fails, perform format+mount)
+if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
+  fsck -a $FACTORYPARTITION
+fi
+
 mkdir $FACTORYTMPMNT
 mount $FACTORYPARTITION $FACTORYTMPMNT
 
@@ -60,6 +64,12 @@ if [ ! -e $FACTORYTMPMNT'shadow' ] ; then
 fi
 ln -s -b $FACTORYTMPMNT'shadow' /etc/shadow
 chgrp shadow /etc/shadow
+
+# Mount mainos and data filesystems
+if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
+  fsck -a $MAINOSPARTITION
+  fsck -a $DATAPARTITION
+fi
 
 #
 #	Call all parts in order.
