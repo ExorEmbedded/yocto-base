@@ -12,6 +12,12 @@ prevlevel=N
 umask 022
 export PATH runlevel prevlevel
 
+DATAPARTITION=/dev/mmcblk1p6
+DATATMPMNT=/mnt/data/
+
+CONFIGOSPARTITION=/dev/mmcblk1p2
+CONFIGOSTMPMNT=/mnt/configos/
+
 ETCPARTITION=/dev/mmcblk1p5
 ETCTMPMNT=/mnt/etcfs/
 
@@ -98,10 +104,12 @@ if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
   fsck -a $DATAPARTITION
 fi
 
+mkdir $CONFIGOSTMPMNT
+mkdir $DATATMPMNT
+mount -o ro $CONFIGOSPARTITION $CONFIGOSTMPMNT
+mount $DATAPARTITION $DATATMPMNT
 
 #
 #	Call all parts in order.
 #
 exec /etc/init.d/rc S
-
-

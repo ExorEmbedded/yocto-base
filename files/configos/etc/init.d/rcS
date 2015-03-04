@@ -12,6 +12,11 @@ prevlevel=N
 umask 022
 export PATH runlevel prevlevel
 
+DATAPARTITION=/dev/mmcblk1p6
+DATATMPMNT=/mnt/data/
+
+MAINOSPARTITION=/dev/mmcblk1p3
+MAINOSTMPMNT=/mnt/mainos/
 
 ETCTMPMNT=/mnt/etcfs/
 
@@ -70,6 +75,11 @@ if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
   fsck -a $MAINOSPARTITION
   fsck -a $DATAPARTITION
 fi
+
+mkdir $MAINOSTMPMNT
+mkdir $DATATMPMNT
+mount -o ro $MAINOSPARTITION $MAINOSTMPMNT
+mount $DATAPARTITION $DATATMPMNT
 
 #
 #	Call all parts in order.
