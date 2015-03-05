@@ -5,4 +5,4 @@
 
 MNTNAME=$(grep ${DEVNAME} /proc/mounts | awk '{print $2}')
 chgrp data "${MNTNAME}"
-chmod g+s "${MNTNAME}"
+chmod 2774 "${MNTNAME}"  # setgid + rwx for group
