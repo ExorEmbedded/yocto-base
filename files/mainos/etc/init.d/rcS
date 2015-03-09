@@ -75,7 +75,7 @@ if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
   fsck -a $FACTORYPARTITION
 fi
 
-mkdir $FACTORYTMPMNT
+mkdir -p $FACTORYTMPMNT
 mount $FACTORYPARTITION $FACTORYTMPMNT
 
 if [ $? -ne 0 ]; then
@@ -104,22 +104,13 @@ rmdir $ETCTMPMNT
 # Switch to etc partition
 mount $ETCPARTITION /etc 
 
-# Compare etc version with bsp version
-if [ ! "$bspVers" = "$etcVers" ]; then
-        mkdir -p $ROOTTMPMNT
-        mount -o bind / $ROOTTMPMNT
-	if [ -f "$ROOTTMPMNT/etc/migrations/version" ]; then
-        	mount -t tmpfs -o rw tmpfs /tmp
-        	# Do migration
-        	/etc/init.d/postupdate.sh $ROOTTMPMNT/etc/migrations
-        	rm -rf /etc/*
-        	# Copy updated etc file
-        	cp -a $ROOTTMPMNT/etc/. /etc
-        	# Restore preserved files
-        	cp -a /tmp/preservedFiles/. /
-	fi
-       	umount $ROOTTMPMNT
-       	rm -rf $ROOTTMPMNT
+# If versions do not match do postupdate
+if [ ! "$etcVers" = "$bspVers" ]; then
+	mkdir -p $ROOTTMPMNT
+	mount -o bind / $ROOTTMPMNT
+	$ROOTTMPMNT/etc/postupdate.sh $ROOTTMPMNT
+	umount -l $ROOTTMPMNT
+	rm -r $ROOTTMPMNT
 fi
 
 # Mount configos and data filesystems
