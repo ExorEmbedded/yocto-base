@@ -13,7 +13,9 @@
 
 test -c /dev/urandom || exit 0
 . /etc/default/rcS
-URANDOMDIR="/etc/urandom/"
+URANDOMDIR="/etc/urandom"
+
+mkdir -p $URANDOMDIR
 
 case "$1" in
 	start|"")
