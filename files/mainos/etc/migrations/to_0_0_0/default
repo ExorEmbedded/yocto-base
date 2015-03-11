@@ -1,0 +1,17 @@
+/etc/network/interfaces
+/etc/default/volatiles/pLogFile
+/etc/pointercal.xinput
+/etc/hostname
+/etc/resolv.conf 
+/etc/ssh
+/etc/jmuconfig/network.json
+/etc/localtime
+/etc/timezone
+/etc/rc0.d
+/etc/rc1.d
+/etc/rc2.d
+/etc/rc3.d
+/etc/rc4.d
+/etc/rc5.d
+/etc/rc6.d
+/etc/rcS.d
