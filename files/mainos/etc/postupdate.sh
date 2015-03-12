@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # Started from rcS when
@@ -17,27 +16,27 @@ ROOTTMPMNT=$1
 UPDATEPATH="/tmp"
 PRESERVEDPATH="$UPDATEPATH/preservedFiles"
 
-PACKAGEPATH="$ROOTTMPMNT/etc/migrations"
+PACKAGEPATH="$ROOTTMPMNT/etc/migrations" 
 
 # utilities
 # Saves file in /tmp/preservedFiles
 preserveFile() {
 	echo "Preserving $1..."
-	[ ! -e $1 ] && return 0
-	path="$(dirname $1)"
+	[ ! -e "$1" ] && return 0
+	path="$( dirname $1 )"
 	mkdir -p $PRESERVEDPATH/$path
 	# Copy without override
-	for f in $( find $1); do	
-		[ -d $1 ] && mkdir -p $PRESERVEDPATH/$1 && continue
-		[ -f $PRESERVEDPATH/$1 ] && continue
-		cp -a $1 $PRESERVEDPATH/$1
+	for f in $( find $1 ); do
+		[ -d $f ] && mkdir -p $PRESERVEDPATH/$f && continue
+		[ -f $PRESERVEDPATH/$f ] && continue
+		cp -a $f $PRESERVEDPATH/$f
 	done
 }
 
 # Removes file from /tmp/preservdFiles
 discardFile() {
 	echo "Removing $1 from preserved files..."
-	[ -e "$PRESERVEDPATH/$1" ] && rm -rf $PRESERVEDPATH/$1	
+	[ -e "$PRESERVEDPATH/$1" ] && rm -rf $PRESERVEDPATH/$1
 }
 
 # Input: [version1] [version2] , eg 1_2_3 5_6_7
@@ -57,7 +56,7 @@ versionCompare() {
 	elif [ $M1 -gt $M2  ]; then 
 		return 1
 	fi
-	if [ $m1 -lt $m2 ]; then     
+	if [ $m1 -lt $m2 ]; then
         	return 255
         elif [ $m1 -gt $m2  ]; then
                 return 1
@@ -74,19 +73,25 @@ versionCompare() {
 migrate() {
 	# Update preserved files
 	if [ -f "$PACKAGEPATH/to_$1/default" ]; then
-		# Copy files to preserve
-		while read line; do
-			echo $line
-			[ -z "$line" -o "$line" = " "* ] && continue
-        		file="/$(echo $line | sed "s:\(^/\|/$\)::g" )"
-        		preserveFile $file
-		done < $PACKAGEPATH/to_$1/default
 		# Find files to discard by comparing old default file with new one
+		if [ -f "$currDefFile" ]; then
+                        while read line; do
+				line=$( echo "$line" | sed "s:\( *#.*$\|^ *\)::g" )
+                                [ -z "$line" ] && continue
+                                file="$(echo "$line" | sed "s:\(^/\|\**/* *$\)::g" )"
+                                [ -z "$( grep "^/*$file/*\** *$" $PACKAGEPATH/to_$1/default )" ] && discardFile "/$file"
+                        done < "$currDefFile"
+                fi
+		# Copy files to preserve
+		psvdDirs=""
 		while read line; do
-			[ -z "$line" -o "$line" = " "* ] && continue
-        		file="$(echo $line | sed "s:\(^/\|/$\)::g" )"
-        		[ -z "$( grep "^/*$file/* *$" $PACKAGEPATH/to_$1/default )" ] && discardFile /$file
-        	done < "$currDefFile"
+			line=$( echo "$line" | sed "s:\( *#.*$\|^ *\)::g" )
+			[ -z "$line" ] && continue
+        		file="/$(echo "$line" | sed "s:\(^/\|/* *$\)::g" )"
+			[ -d "$file" ] && psvdDirs="$psvdDirs $file"
+        		file="$(echo "$file" | sed "s:/*\* *$::g" )"
+			preserveFile "$file"
+		done < $PACKAGEPATH/to_$1/default
 		currDefFile="$PACKAGEPATH/to_$1/default"
 	fi
 	# Execute migration script
@@ -142,10 +147,12 @@ done
 
 # Preserve files for current version listed in default file
 while read line; do
-	[ -z "$line" -o "$line" = " "* ] && continue
-	# Normalize file paths by removing leading and trailing slashes 
-	file="/$(echo $line | sed "s:\(^/\|/$\)::g" )"
-	preserveFile $file
+	line=$( echo "$line" | sed "s:\( *#.*$\|^ *\)::g" )
+	[ -z "$line" ] && continue 
+	file="/$(echo "$line" | sed "s:\(^/\|/* *$\)::g" )"
+        [ -d "$file" ] && psvdDirs="$psvdDirs $file"
+        file="$(echo "$file" | sed "s:/*\* *$::g" )"
+	preserveFile "$file"
 done < "$currDefFile"
 
 # Iterative update from current to last installed version passing through all
@@ -164,6 +171,11 @@ rm -rf /etc/*
 
 # Copy updated etc file
 cp -a $ROOTTMPMNT/etc/. /etc
+
+# Remove preserved directories
+for dir in $psvdDirs; do
+	rm -rf $dir
+done
 
 # Finally restore preserved and migrated files
 cp -a $PRESERVEDPATH/etc/. /etc
