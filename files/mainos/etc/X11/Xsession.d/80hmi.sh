@@ -17,9 +17,9 @@ if [[ -e /etc/nokiosk ]] ; then
 	echo "HMI: NOKIOSK" | logger
 	# starts the HMI
 	rm /etc/nokiosk # next boot will reset to default kiosk mode
-	DISPLAY=:0 dbus-send --session --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchDesktop
+	DISPLAY=:0 dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchDesktop
 else
 	echo "HMI: KIOSK" | logger
 	# starts the desktop
-	DISPLAY=:0 dbus-send --session --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchHMI | logger
+	DISPLAY=:0 dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchHMI | logger
 fi
