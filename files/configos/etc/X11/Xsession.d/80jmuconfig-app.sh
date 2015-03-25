@@ -17,6 +17,6 @@ jmuconfig_wait()
 
     logger -t $0 "Running jmuconfig-app"
 
-    DISPLAY=:0 exec jmuconfig-app 2>&1 | logger -t JMUConfig-app
+    DISPLAY=:0 su - user -c 'jmuconfig-app 2>&1 | logger -t JMUConfig-app'
 
 } &
