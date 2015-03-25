@@ -2,7 +2,10 @@
 
 . /etc/default/rcS
 
-[ "$ROOTFS_READ_ONLY" = "no" ] && exit 0
+if [ "$ROOTFS_READ_ONLY" = "no" ]; then
+    mount -n -o remount,rw /
+    exit 0
+fi
 
 is_on_read_only_partition () {
 	DIRECTORY=$1
