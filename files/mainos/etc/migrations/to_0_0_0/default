@@ -22,6 +22,8 @@
 /etc/jmuconfig/network.json
 /etc/localtime
 /etc/timezone
+/etc/rotation
+/etc/X11/xorg.conf.d/x11-rotate.conf
 
 # Some services can be disabled by deleting links from those dirs. Preserve this configuration.
 /etc/rc0.d
