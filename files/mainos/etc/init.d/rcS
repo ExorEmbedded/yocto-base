@@ -124,6 +124,10 @@ mkdir $DATATMPMNT
 mount -o ro $CONFIGOSPARTITION $CONFIGOSTMPMNT
 mount $DATAPARTITION $DATATMPMNT
 
+# Move /home to data partition 
+[ ! -d "$DATATMPMNT/home" ] && cp -rp /home $DATATMPMNT
+mount -o bind $DATATMPMNT/home /home
+
 #
 #	Call all parts in order.
 #
