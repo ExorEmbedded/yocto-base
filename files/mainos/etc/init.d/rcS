@@ -43,7 +43,7 @@ trap ":" INT QUIT TSTP
 #
 #      Verify mmcblk1p5 is populated (if no, copy /etc to it) and mount it over /etc 
 # 
-mount -t tmpfs -o rw tmpfs /mnt
+mount -t tmpfs -o rw,size=1M tmpfs /mnt
 
 if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
   fsck -a $ETCPARTITION
