@@ -40,13 +40,13 @@ trap ":" INT QUIT TSTP
 #
 #      Verify mmcblk1p5 is populated (if no, copy /etc to it) and mount it over /etc 
 # 
-mount -t tmpfs -o rw tmpfs /mnt
+mount -t tmpfs -o rw,size=1M tmpfs /mnt
 mkdir $ETCTMPMNT
 
 # creates a temporary rambased etcfs
 mount -o bind /etc $ETCTMPMNT
 # mount a volatile temporary fs in /etc copying files from original /etc
-mount -t tmpfs -o rw tmpfs /etc
+mount -t tmpfs -o rw,size=16M tmpfs /etc
 cp -a $ETCTMPMNT/* /etc/
 umount $ETCTMPMNT
 rmdir $ETCTMPMNT

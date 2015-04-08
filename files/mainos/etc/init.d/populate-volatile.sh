@@ -211,6 +211,7 @@ if [ "$1" = "enable" ]; then
         mkdir -p $PERSISTENTLOGDIR
 	$SYSLOG stop
         cp -rp $VOLATILELOGDIR/* $PERSISTENTLOGDIR
+	rm -rf $VOLATILELOGDIR/*
 	mount -o bind $PERSISTENTLOGDIR $VOLATILELOGDIR
         $SYSLOG start
 	exit 0
@@ -223,6 +224,10 @@ if [ "$1" = "disable" ]; then
         echo "n" > $CFGDIR/pLogFlag
         $SYSLOG	stop
 	umount -l $VOLATILELOGDIR
+        # Tmpfs size is limited in /var/volatile. Copy messages logs first to make sure to save them
+        for mlog in $( find $PERSISTENTLOGDIR/messages* ); do
+                mv $mlog $VOLATILELOGDIR/
+        done
         cp -rp $PERSISTENTLOGDIR/* $VOLATILELOGDIR
 	$SYSLOG start
         rm -rf $PERSISTENTLOGDIR
