@@ -1,6 +1,8 @@
 #!/bin/sh
 
-# Scripts here are not guaranteed to run only once..
+[ "$IFACE" = "lo" ] && exit 0
+
+# scripts here are not guaranteed to run only once..
 LOCK="/tmp/ntpsync.lock"
 [ -e "${LOCK}" ] && exit 0
 
@@ -10,12 +12,7 @@ find /etc/rc* | grep ntpd > /dev/null || exit 0
 {
     touch "${LOCK}"
 
-    /etc/init.d/ntpd stop
-
-    SERVER=`grep ^server /etc/ntp.conf | head -n 1 | awk '{print $2}'`
-    ntpdate "${SERVER}" && hwclock -u -w
-
-    /etc/init.d/ntpd start
+    /etc/init.d/ntpd restart
 
     rm "${LOCK}"
 
