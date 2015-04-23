@@ -37,7 +37,7 @@ echo 0 > /sys/class/vtconsole/vtcon1/bind
 echo -ne "\ec"  > /dev/tty1
 
 #clear framebuffer
-cat /dev/zero > /dev/fb0
+[ -e /dev/fb0 ] && cat /dev/zero > /dev/fb0
 
 # start splash
 /usr/bin/psplash --notouch --angle $rotation &

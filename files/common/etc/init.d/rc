@@ -180,5 +180,5 @@ startup() {
 
 # blank screen on exit
 if [ "x$runlevel" != "xS" ]; then
-	cat /dev/zero > /dev/fb0
+	[ -e /dev/fb0 ] && cat /dev/zero > /dev/fb0
 fi
