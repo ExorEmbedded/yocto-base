@@ -170,13 +170,13 @@ startup() {
 	done
   fi
 
-#Uncomment to cause psplash to exit manually, otherwise it exits when it sees a VC switch
-#if [ "x$runlevel" != "xS" ] && [ ! -x /etc/rc${runlevel}.d/S??xserver-nodm ]; then
-#    if type psplash-write >/dev/null 2>&1; then
-#        TMPDIR=/mnt/.psplash psplash-write "QUIT" || true
-#    	umount -l /mnt/.psplash
-#    fi
-#fi
+# Exit psplash manually only if X is not installed (e.g. router), otherwise it exits when it sees a VC switch
+if [ "x$runlevel" != "xS" ] && [ ! -x /etc/rc${runlevel}.d/S??xserver-nodm ]; then
+	if type psplash-write >/dev/null 2>&1; then
+		TMPDIR=/mnt/.psplash psplash-write "QUIT" || true
+		umount -l /mnt/.psplash
+	fi
+fi
 
 # blank screen on exit
 if [ "x$runlevel" != "xS" ]; then
