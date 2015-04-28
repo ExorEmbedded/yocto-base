@@ -7,7 +7,7 @@
 
 MOUNT="/bin/mount"
 PMOUNT="/usr/bin/pmount"
-UMOUNT="/bin/umount -l" # lazy umount in case files are in use
+UMOUNT="/bin/umount"
 FSCK="/sbin/fsck"
 
 # Otherwise fsck won't find some executables
@@ -83,7 +83,7 @@ fi
 if [ "$ACTION" = "remove" ] && [ -x "$UMOUNT" ] && [ -n "$DEVNAME" ]; then
 	for mnt in `cat /proc/mounts | grep "$DEVNAME" | cut -f 2 -d " " `
 	do
-		$UMOUNT $mnt
+		$UMOUNT -l $mnt # lazy umount in case files are in use
 	done
 	
 	# Remove empty directories from auto-mounter
