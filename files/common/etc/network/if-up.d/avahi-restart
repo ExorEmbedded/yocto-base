@@ -9,7 +9,7 @@ LOCK="/tmp/avahi-restart.lock"
 {
     touch "${LOCK}"
 
-    /etc/init.d/avah-daemon restart
+    /etc/init.d/avahi-daemon restart
 
     rm "${LOCK}"
 
