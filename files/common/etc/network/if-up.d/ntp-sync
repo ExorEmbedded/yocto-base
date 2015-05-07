@@ -3,7 +3,7 @@
 [ "$IFACE" = "lo" ] && exit 0
 
 # scripts here are not guaranteed to run only once..
-LOCK="/tmp/ntpsync.lock"
+LOCK="/tmp/ntp-sync.lock"
 [ -e "${LOCK}" ] && exit 0
 
 # if ntpd is not in startup scripts, "Automatic Update" is disabled - do nothing
