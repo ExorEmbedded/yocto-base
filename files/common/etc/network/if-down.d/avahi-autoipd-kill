@@ -1,0 +1,3 @@
+#!/bin/sh
+/usr/sbin/avahi-autoipd -k "$IFACE" 2>/dev/null
+exit 0
