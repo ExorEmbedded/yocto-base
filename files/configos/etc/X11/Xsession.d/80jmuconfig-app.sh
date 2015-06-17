@@ -1,8 +1,6 @@
 #!/bin/sh
 
 JMUCONFIG_TESTURL="localhost:3000/api/v1/system"
-JMUCONFIG_MAINURL="http://localhost:8080"
-BROWSER_FLAGS="-f -l -g -c"
 
 jmuconfig_wait()
 {
@@ -19,6 +17,6 @@ jmuconfig_wait()
 
     logger -t $0 "Running jmuconfig-app"
 
-    DISPLAY=:0 su - user -c "WebkitBrowser $JMUCONFIG_MAINURL $BROWSER_FLAGS 2>&1 | logger -t JMUConfig-app"
+    DISPLAY=:0 su - user -c 'jmuconfig-app 2>&1 | logger -t JMUConfig-app'
 
 } &
