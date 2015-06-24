@@ -19,4 +19,8 @@ jmuconfig_wait()
 
     DISPLAY=:0 su - user -c 'jmuconfig-app 2>&1 | logger -t JMUConfig-app'
 
+    sync
+
+    reboot -f
+
 } &
