@@ -17,6 +17,7 @@
 
 . /etc/default/rcS
 export VERBOSE
+export TMPDIR=/mnt/.psplash
 
 startup_progress() {
     step=$(($step + $step_change))
@@ -83,11 +84,9 @@ startup() {
   # Is there an rc directory for this new runlevel?
   if [ -d /etc/rc$runlevel.d ]
   then
-	# Find out where in the progress bar the initramfs got to.
+	# Find out where in the progress bar rcS got to.
 	PROGRESS_STATE=0
-	#if [ -f /dev/.initramfs/progress_state ]; then
-	#    . /dev/.initramfs/progress_state
-	#fi
+	[ -f "$TMPDIR/progress_state" ] && read PROGRESS_STATE < $TMPDIR/progress_state 
 
 	# Split the remaining portion of the progress bar into thirds
 	progress_size=$(((100 - $PROGRESS_STATE) / 3))
@@ -107,7 +106,7 @@ startup() {
 			step_change=1
 			;;
 		*)
-			# Begin where rcS left off and use the final 1/3 of
+			# Begin where rc-S left off and use the final 1/3 of
 			# the space (by leaving progress_size unchanged)
 			first_step=$(($progress_size * 2 + $PROGRESS_STATE))
 			step_change=1
@@ -173,7 +172,7 @@ startup() {
 # Exit psplash manually only if X is not installed (e.g. router), otherwise it exits when it sees a VC switch
 if [ "x$runlevel" != "xS" ] && [ ! -x /etc/rc${runlevel}.d/S??xserver-nodm ]; then
 	if type psplash-write >/dev/null 2>&1; then
-		TMPDIR=/mnt/.psplash psplash-write "QUIT" || true
+		psplash-write "QUIT" || true
 		umount -l /mnt/.psplash
 	fi
 fi

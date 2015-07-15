@@ -20,103 +20,105 @@ DATATMPMNT=/mnt/data/
 CONFIGOSPARTITION=/dev/mmcblk1p2
 CONFIGOSTMPMNT=/mnt/configos/
 
-ETCPARTITION=/dev/mmcblk1p5
 ETCTMPMNT=/mnt/etcfs/
+ETCPARTITION=/dev/mmcblk1p5
 
 FACTORYPARTITION=/dev/mmcblk1p1
 FACTORYTMPMNT=/mnt/factory/
 
-#	Make sure proc is mounted
-#
-[ -d "/proc/1" ] || mount /proc
+# Mount system fs
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
 
-#
-#	Source defaults.
-#
+# Source defaults.
 . /etc/default/rcS
 
-#
-#	Trap CTRL-C &c only in this shell so we can interrupt subprocesses.
-#
+# Trap CTRL-C &c only in this shell so we can interrupt subprocesses.
 trap ":" INT QUIT TSTP
 
-#
-#      Verify mmcblk1p5 is populated (if no, copy /etc to it) and mount it over /etc 
-# 
 mount -t tmpfs -o rw,size=1M tmpfs /mnt
 
-if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
-  fsck -a $ETCPARTITION
-fi
-
-mkdir $ETCTMPMNT
-mount $ETCPARTITION $ETCTMPMNT
-
-if [ ! -d $ETCTMPMNT'init.d' ]; then
-  # The partition does not contain a valid etc folder
-  umount $ETCTMPMNT
-  mke2fs -T ext3 -L "etc" $ETCPARTITION
-  mount $ETCPARTITION $ETCTMPMNT
-  cp -a /etc/. $ETCTMPMNT
-  sync
-fi
-
-# Get etc and bsp versions
-etcVers="$( cat $ETCTMPMNT/migrations/version )"
-bspVers="$( cat /boot/version )"
-
-#
-#     Handle the user partition: mount it (format+mount if mount fails), copy the password file (shadow) 
-#     if not yet there and make a link to it in the final /etc directory.
-#
-
-# Mount the factory partition (if mount fails, perform format+mount)
-if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
-  fsck -a $FACTORYPARTITION
-fi
-
-mkdir -p $FACTORYTMPMNT
-mount $FACTORYPARTITION $FACTORYTMPMNT
-
+# Mount factory partition to get the splash image (if mount fails, perform format+mount)
+mkdir $FACTORYTMPMNT
+mount -o ro $FACTORYPARTITION $FACTORYTMPMNT
 if [ $? -ne 0 ]; then
-   mke2fs -T ext3 -L "factory" $FACTORYPARTITION 
-   mount $FACTORYPARTITION $FACTORYTMPMNT
+   mke2fs -T ext3 -L "factory" $FACTORYPARTITION
+   mount -o ro  $FACTORYPARTITION $FACTORYTMPMNT
 fi
 
-# If shadow in final etc partition is not a link to a valid file... copy /etc/shadow from original rootfs to the factory 
-# partition and make a link to it in final etc partition
+# Copy /etc/shadow from etc to the factory partition if not already there
 if [ ! -e $FACTORYTMPMNT'shadow' ] ; then
+  mount -o remount,rw $FACTORYTMPMNT
   cp -a /etc/shadow $FACTORYTMPMNT'shadow'
+  mount -o remount,ro $FACTORYTMPMNT
 fi
-if [ ! -L $ETCTMPMNT'shadow' ]; then
-  ln -s -b $FACTORYTMPMNT'shadow' $ETCTMPMNT'shadow'
+
+[ "$ENABLE_ROOTFS_FSCK" = "yes" ] && fsck -a $ETCPARTITION
+
+mount $ETCPARTITION /etc
+
+# Read screen rotation settings
+rotation=0
+[ -s /etc/rotation ] && read rotation < /etc/rotation
+
+# Disable console on framebuffer to avoid showing console output and
+# blinking when starting X
+echo 0 > /sys/class/vtconsole/vtcon1/bind
+
+# Clear console framebuffer
+echo -ne "\ec"  > /dev/tty1
+
+# Clear framebuffer
+[ -e /dev/fb0 ] && cat /dev/zero > /dev/fb0
+
+# Start splash
+export TMPDIR=/mnt/.psplash
+mkdir $TMPDIR
+mount -t tmpfs -o rw,size=40k /tmpfs $TMPDIR
+/usr/bin/psplash --angle $rotation &
+
+# Verify etc partition is properly populated (if no, copy original /etc to it)
+if [ ! -d '/etc/init.d' ]; then
+   # The partition does not contain a valid etc folder
+   umount -l /etc
+   mke2fs -T ext3 -L "etc" $ETCPARTITION
+   mkdir $ETCTMPMNT
+   mount $ETCPARTITION $ETCTMPMNT
+   cp -a /etc/. $ETCTMPMNT
+   sync
+   mount --move $ETCTMPMNT /etc
+   rm -rf $ETCTMPMNT
+fi
+
+# Check if shadow in final etc partition is a link to a valid file 
+if [ ! -L /etc/'shadow' ]; then
+  ln -s -b $FACTORYTMPMNT'shadow' /etc/'shadow'
   chgrp shadow /etc/shadow
   sync
 fi
 
-mount -o remount,ro $FACTORYTMPMNT
-umount $ETCTMPMNT
-rmdir $ETCTMPMNT
+# Get etc and bsp versions
+etcVers="$( cat /etc/migrations/version )"
+bspVers="$( cat /boot/version )"
+
+# If versions do not match do postupdate
+if [ ! "$etcVers" = "$bspVers" ]; then
+   mkdir -p $ROOTTMPMNT
+   mount -o bind / $ROOTTMPMNT
+   $ROOTTMPMNT/etc/postupdate.sh $ROOTTMPMNT
+   umount -l $ROOTTMPMNT
+   rm -r $ROOTTMPMNT
+fi
+
+psplash-write "PROGRESS 0"
 
 # NOTE: we need to keep the factory partition mounted, in order not to break the link with the password file
 # umount /mnt
 
-# Switch to etc partition
-mount $ETCPARTITION /etc 
-
-# If versions do not match do postupdate
-if [ ! "$etcVers" = "$bspVers" ]; then
-	mkdir -p $ROOTTMPMNT
-	mount -o bind / $ROOTTMPMNT
-	$ROOTTMPMNT/etc/postupdate.sh $ROOTTMPMNT
-	umount -l $ROOTTMPMNT
-	rm -r $ROOTTMPMNT
-fi
-
 # Mount configos and data filesystems
 if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
-  fsck -a $CONFIGOSPARTITION
-  fsck -a $DATAPARTITION
+   fsck -a $CONFIGOSPARTITION
+   fsck -a $DATAPARTITION
 fi
 
 mkdir $CONFIGOSTMPMNT
@@ -128,7 +130,10 @@ mount $DATAPARTITION $DATATMPMNT
 [ ! -d "$DATATMPMNT/home" ] && cp -rp /home $DATATMPMNT
 mount -o bind $DATATMPMNT/home /home
 
-#
-#	Call all parts in order.
-#
+# Update splash progress bar
+PROGRESS_STATE=10
+echo $PROGRESS_STATE > $TMPDIR/progress_state 
+psplash-write "PROGRESS $PROGRESS_STATE"
+
+# Call all parts in order
 exec /etc/init.d/rc S
