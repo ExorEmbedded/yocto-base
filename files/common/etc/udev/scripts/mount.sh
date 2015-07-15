@@ -44,7 +44,7 @@ automount() {
 	# Silent util-linux's version of mounting auto
 	if [ "x`readlink $MOUNT`" = "x/bin/mount.util-linux" ] ;
 	then
-		MOUNT_ARGS="$MOUNT_ARGS,silent"
+		MOUNT_ARGS="$MOUNT_ARGS -o silent"
 	fi
 	
 	if ! $MOUNT -t auto $MOUNT_ARGS $DEVNAME "/mnt/$name"
