@@ -21,25 +21,12 @@ PACKAGEPATH="$ROOTTMPMNT/etc/migrations"
 mount -t tmpfs -o rw tmpfs $UPDATEPATH
 mkdir -p $PRESERVEDPATH
 
-export TMPDIR=/mnt/.psplash
-mkdir $TMPDIR
-mount tmpfs -t tmpfs $TMPDIR -o,size=40k
-
 rotation=0
-if [ -e /etc/rotation ]; then
-        read rotation < /etc/rotation
-fi
+[ -e /etc/rotation ] && read rotation < /etc/rotation
 
-mount -t sysfs sysfs /sys
-echo 0 > /sys/class/vtconsole/vtcon1/bind
-
-# clear console framebuffer
-echo -ne "\ec"  > /dev/tty1
-
-#clear framebuffer
-[ -e /dev/fb0 ] && cat /dev/zero > /dev/fb0
-
-# start splash
+# Restart psplash with --notouch
+psplash-write "QUIT"
+sleep 2
 /usr/bin/psplash --notouch --angle $rotation &
 
 currProgress=0
@@ -226,4 +213,7 @@ psplash-write "PROGRESS 100"
 
 umount $UPDATEPATH
 
+# Restart psplash 
 psplash-write "QUIT"
+sleep 2
+/usr/bin/psplash --angle $rotation &
