@@ -4,11 +4,15 @@
 #
 # Attempt to mount any added block devices and umount any removed devices
 
-
 MOUNT="/bin/mount"
 PMOUNT="/usr/bin/pmount"
 UMOUNT="/bin/umount"
 FSCK="/sbin/fsck"
+
+# Device-specific options
+if echo $myname | grep -q usbmemory; then
+	MOUNT_ARGS="-o gid=admin,umask=002"  # writable by admin group
+fi
 
 # Otherwise fsck won't find some executables
 PATH="/usr/gnu/bin:/usr/local/bin:/bin:/usr/bin:.:/usr/sbin"
@@ -40,12 +44,12 @@ automount() {
 	# Silent util-linux's version of mounting auto
 	if [ "x`readlink $MOUNT`" = "x/bin/mount.util-linux" ] ;
 	then
-		MOUNT="$MOUNT -o silent"
+		MOUNT_ARGS="$MOUNT_ARGS,silent"
 	fi
 	
-	if ! $MOUNT -t auto $DEVNAME "/mnt/$name"
+	if ! $MOUNT -t auto $MOUNT_ARGS $DEVNAME "/mnt/$name"
 	then
-		#logger "mount.sh/automount" "$MOUNT -t auto $DEVNAME \"/mnt/$name\" failed!"
+		#logger "mount.sh/automount" "$MOUNT -t auto $MOUNT_ARGS $DEVNAME \"/mnt/$name\" failed!"
 		rm_dir "/mnt/$name"
 	else
 		logger "mount.sh/automount" "Auto-mount of [/mnt/$name] successful"
@@ -67,9 +71,9 @@ if [ "$ACTION" = "add" ] && [ -n "$DEVNAME" ] && [ -n "$ID_FS_TYPE" ]; then
 	# Do not perform fsck if device is already mounted
 	[ -z "$( grep "$DEVNAME" /etc/mtab)" ] && $FSCK -a $DEVNAME
 	if [ -x "$PMOUNT" ]; then
-		$PMOUNT $DEVNAME 2> /dev/null
+		$PMOUNT $MOUNT_ARGS $DEVNAME 2> /dev/null
 	elif [ -x $MOUNT ]; then
-    		$MOUNT $DEVNAME 2> /dev/null
+		$MOUNT $MOUNT_ARGS $DEVNAME 2> /dev/null
 	fi
 	
 	# If the device isn't mounted at this point, it isn't
