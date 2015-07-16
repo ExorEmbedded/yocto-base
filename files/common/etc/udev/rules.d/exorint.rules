@@ -18,20 +18,29 @@
 #
 
 # USB stick automounting
+KERNEL=="sda", SUBSYSTEMS=="usb", ENV{myname}="usbmemory"
 KERNEL=="sda1", SUBSYSTEMS=="usb", ENV{myname}="usbmemory"
 KERNEL=="sda[2-9]", SUBSYSTEMS=="usb", ENV{myname}="usbmemoryp%n"
+KERNEL=="sdb", SUBSYSTEMS=="block", ENV{myname}="usbmemory2"
 KERNEL=="sdb1", SUBSYSTEMS=="block", ENV{myname}="usbmemory2"
 KERNEL=="sdb[2-9]", SUBSYSTEMS=="usb", ENV{myname}="usbmemory2p%n"
+KERNEL=="sdc", SUBSYSTEMS=="usb", ENV{myname}="usbmemory3"
 KERNEL=="sdc1", SUBSYSTEMS=="usb", ENV{myname}="usbmemory3"
 KERNEL=="sdc[2-9]", SUBSYSTEMS=="usb", ENV{myname}="usbmemory3p%n"
+KERNEL=="sdd", SUBSYSTEMS=="usb", ENV{myname}="usbmemory4"
 KERNEL=="sdd1", SUBSYSTEMS=="usb", ENV{myname}="usbmemory4"
 KERNEL=="sdd[2-9]", SUBSYSTEMS=="usb", ENV{myname}="usbmemory4p%n"
 KERNEL=="sd?[1-9]", SUBSYSTEMS=="usb", ACTION=="add",    RUN+="/etc/udev/scripts/mount.sh"
 KERNEL=="sd?[1-9]", SUBSYSTEMS=="usb", ACTION=="remove", RUN+="/etc/udev/scripts/mount.sh"
+KERNEL=="sd?", SUBSYSTEMS=="usb", ACTION=="add",    RUN+="/etc/udev/scripts/mount.sh"
+KERNEL=="sd?", SUBSYSTEMS=="usb", ACTION=="remove", RUN+="/etc/udev/scripts/mount.sh"
 
 # USB stick autorun
+SUBSYSTEM=="block", KERNEL=="sda", ACTION=="add", RUN+="/etc/udev/scripts/usb_autorun.sh usbmemory"
 SUBSYSTEM=="block", KERNEL=="sda1", ACTION=="add", RUN+="/etc/udev/scripts/usb_autorun.sh usbmemory"
+SUBSYSTEM=="block", KERNEL=="sdb", ACTION=="add", RUN+="/etc/udev/scripts/usb_autorun.sh usbmemory2"
 SUBSYSTEM=="block", KERNEL=="sdb1", ACTION=="add", RUN+="/etc/udev/scripts/usb_autorun.sh usbmemory2"
+SUBSYSTEM=="block", KERNEL=="sdc", ACTION=="add", RUN+="/etc/udev/scripts/usb_autorun.sh usbmemory3"
 SUBSYSTEM=="block", KERNEL=="sdc1", ACTION=="add", RUN+="/etc/udev/scripts/usb_autorun.sh usbmemory3"
 
 # auto-mount EMMC
@@ -74,3 +83,4 @@ SUBSYSTEM=="i2c-dev", GROUP="comm", MODE="0660"
 
 SUBSYSTEM=="backlight", RUN+="/bin/chgrp video /sys/class/backlight/%k/brightness /sys/class/backlight/%k/bl_power", \
     RUN+="/bin/chmod 664 /sys/class/backlight/%k/brightness /sys/class/backlight/%k/bl_power"
+
