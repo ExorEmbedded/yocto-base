@@ -75,12 +75,12 @@ rmdir $ETCTMPMNT
 if [ ! -e $FACTORYTMPMNT'shadow' ] ; then
   mount -o remount,rw $FACTORYTMPMNT
   cp -a /etc/shadow $FACTORYTMPMNT'shadow'
+  chgrp shadow $FACTORYTMPMNT'shadow'
   mount -o remount,ro $FACTORYTMPMNT
 fi
 
 # creates a link
 ln -s -b $FACTORYTMPMNT'shadow' /etc/shadow
-chgrp shadow /etc/shadow
 
 # Mount mainos and data filesystems
 if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
