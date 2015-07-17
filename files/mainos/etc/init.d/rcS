@@ -50,6 +50,7 @@ fi
 if [ ! -e $FACTORYTMPMNT'shadow' ] ; then
   mount -o remount,rw $FACTORYTMPMNT
   cp -a /etc/shadow $FACTORYTMPMNT'shadow'
+  chgrp shadow $FACTORYTMPMNT'shadow'
   mount -o remount,ro $FACTORYTMPMNT
 fi
 
@@ -93,7 +94,6 @@ fi
 # Check if shadow in final etc partition is a link to a valid file 
 if [ ! -L /etc/'shadow' ]; then
   ln -s -b $FACTORYTMPMNT'shadow' /etc/'shadow'
-  chgrp shadow /etc/shadow
   sync
 fi
 
