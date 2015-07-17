@@ -63,12 +63,16 @@ exorint_ver_type()
 exorint_in_mainos()
 {
     [ "$(exorint_ver_component)" = "M" ] && return 0
+
+    return 1
 }
 
 # Returns 0 if we are in configos
 exorint_in_configos()
 {
     [ "$(exorint_ver_component)" = "C" ] && return 0
+
+    return 1
 }
 
 # Generate hostname based on product type and last 4 digits of eth0 mac
@@ -79,4 +83,6 @@ exorint_hostname()
     echo -n "-"
     cat /sys/class/net/eth0/address | cut -d ':' -f 5- | sed 's/://' | tr -d '\n'
     exorint_in_configos && echo -n "-recovery"
+
+    return 0
 }
