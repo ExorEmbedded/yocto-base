@@ -28,6 +28,7 @@
 /etc/timezone
 /etc/rotation
 /etc/X11/xorg.conf.d/x11-rotate.conf
+/etc/X11/xorg.conf.d/dpms.conf
 
 # Some services can be disabled by deleting links from those dirs. Preserve this configuration.
 /etc/rc0.d
