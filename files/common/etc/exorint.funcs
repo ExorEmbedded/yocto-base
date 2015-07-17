@@ -1,0 +1,82 @@
+# Note: uses Bash-specific syntax
+
+# e.g. "US01HSXXM01002003AB"
+BSP_VERSION="$(cat /boot/version)"
+if [[ ${#BSP_VERSION} -ne 17 && ${#BSP_VERSION} -ne 19 ]]; then
+    echo "[exorint.funcs] panic: bad BSP_VERSION: ${BSP_VERSION}"
+    exit 1
+fi
+
+# e.g. "UN60"
+exorint_ver_cpu()
+{
+    echo -n "${BSP_VERSION:0:4}"
+}
+
+# e.g. "HSXX"
+exorint_ver_carrier()
+{
+    echo -n "${BSP_VERSION:4:4}"
+}
+
+# e.g. "M"
+exorint_ver_component()
+{
+    echo -n "${BSP_VERSION:8:1}"
+}
+
+# Get major component of version
+exorint_ver_major()
+{
+    echo -n "$(( 10#${BSP_VERSION:9:2} ))"
+}
+
+# Get minor component of version
+exorint_ver_minor()
+{
+    echo -n "$(( 10#${BSP_VERSION:11:3} ))"
+}
+
+# Get build component of version
+exorint_ver_build()
+{
+    echo -n "$(( 10#${BSP_VERSION:14:3} ))"
+}
+
+# Get product type based on carrier
+exorint_ver_type()
+{
+    case $(exorint_ver_carrier) in
+        HSXX)
+            echo -n "HMI"
+            ;;
+        PLCM)
+            echo -n "ROUTER"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+# Returns 0 if we are in mainos
+exorint_in_mainos()
+{
+    [ "$(exorint_ver_component)" = "M" ] && return 0
+}
+
+# Returns 0 if we are in configos
+exorint_in_configos()
+{
+    [ "$(exorint_ver_component)" = "C" ] && return 0
+}
+
+# Generate hostname based on product type and last 4 digits of eth0 mac
+# e.g. "HMI-3e9b-recovery"   (see #198)
+exorint_hostname()
+{
+    exorint_ver_type
+    echo -n "-"
+    cat /sys/class/net/eth0/address | cut -d ':' -f 5- | sed 's/://' | tr -d '\n'
+    exorint_in_configos && echo -n "-recovery"
+}
