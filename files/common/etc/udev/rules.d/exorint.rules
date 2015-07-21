@@ -84,3 +84,10 @@ SUBSYSTEM=="i2c-dev", GROUP="comm", MODE="0660"
 SUBSYSTEM=="backlight", RUN+="/bin/chgrp video /sys/class/backlight/%k/brightness /sys/class/backlight/%k/bl_power", \
     RUN+="/bin/chmod 664 /sys/class/backlight/%k/brightness /sys/class/backlight/%k/bl_power"
 
+#
+# Mouse
+#
+
+KERNEL=="mouse[1-9]", ACTION=="add",  RUN+="/etc/udev/scripts/mouse.sh"
+KERNEL=="mouse[1-9]", ACTION=="remove",  RUN+="/etc/udev/scripts/mouse.sh"
+
