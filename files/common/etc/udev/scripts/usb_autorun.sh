@@ -2,6 +2,9 @@
 
 SCRIPT=autoexec.sh
 
+# consistecy check : are we executing the script from the deviced signalled by kernel?
+cat /proc/mounts | grep "$DEVNAME " | grep "/mnt/$1 " || exit
+
 echo > /tmp/autorun
 
 autorun() {
