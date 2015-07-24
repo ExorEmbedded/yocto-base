@@ -2,6 +2,10 @@
 
 SCRIPT=autoexec.sh
 
+
+# consistency check: avoid running multiple scripts in parallel
+[ "`ps ax | grep $0 | grep $1\$ | wc -l `" != "2" ] && exit
+
 # consistecy check : are we executing the script from the deviced signalled by kernel?
 cat /proc/mounts | grep "$DEVNAME " | grep "/mnt/$1 " || exit
 
