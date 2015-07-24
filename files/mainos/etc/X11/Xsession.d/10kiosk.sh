@@ -4,6 +4,9 @@ echo "HMI: booting!" | logger
 
 export TMPDIR=/mnt/.psplash/
 
+# starts EPAD service
+dbus-send --system --dest=com.exor.EPAD '/' com.exor.EPAD.ping
+
 if [[ -e $TMPDIR/taptap ]] ; then
 	while ( (cat $TMPDIR/taptap | grep wait) > /dev/null 2>&1 ) ; do
 		echo "HMI: waiting tapttap" | logger
