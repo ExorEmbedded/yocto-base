@@ -47,6 +47,9 @@ SUBSYSTEM=="block", KERNEL=="sdc1", ACTION=="add", RUN+="/etc/udev/scripts/usb_a
 ACTION=="add", KERNEL=="mmcblk1p[0-5]", SUBSYSTEM=="block", RUN+="/etc/udev/scripts/mount.sh"
 ACTION=="add", KERNEL=="mmcblk1p6", SUBSYSTEM=="block", RUN+="/etc/udev/scripts/mount.sh", \
     RUN+="/etc/udev/scripts/datapart_setup.sh"
+# Android partitions
+ACTION=="add", KERNEL=="mmcblk1p8", ENV{opts}="ro", SUBSYSTEM=="block", RUN+="/etc/udev/scripts/mount.sh"
+ACTION=="add", KERNEL=="mmcblk1p10", ENV{opts}="ro", SUBSYSTEM=="block", RUN+="/etc/udev/scripts/mount.sh"
 ACTION=="remove", KERNEL=="mmcblk1p[0-6]", SUBSYSTEM=="block", RUN+="/etc/udev/scripts/mount.sh"
 
 # Auto-mount any SD card

@@ -27,7 +27,7 @@ do
 	fi
 done
 
-automount() {	
+automount() {
 	if [ -z "$myname" ]; then
 		if [ -z "$ID_FS_LABEL" ]; then
 			name="`basename "$DEVNAME"`"
@@ -36,7 +36,7 @@ automount() {
 		fi
 	else
 		name="$myname"
-	fi  
+	fi
 
 	name=${name,,}
 
@@ -46,7 +46,9 @@ automount() {
 	then
 		MOUNT_ARGS="$MOUNT_ARGS -o silent"
 	fi
-	
+
+	[ -n "$opts" ] && MOUNT_ARGS="$MOUNT_ARGS -o $opts"
+
 	if ! $MOUNT -t auto $MOUNT_ARGS $DEVNAME "/mnt/$name"
 	then
 		#logger "mount.sh/automount" "$MOUNT -t auto $MOUNT_ARGS $DEVNAME \"/mnt/$name\" failed!"
@@ -56,7 +58,7 @@ automount() {
 		touch "/tmp/.automount-$name"
 	fi
 }
-	
+
 rm_dir() {
 	# We do not want to rm -r populated directories
 	if test "`find "$1" | wc -l | tr -d " "`" -lt 2 -a -d "$1"
