@@ -69,9 +69,12 @@ rm_dir() {
 	fi
 }
 
+(
+# do in parallel since can take some time
+
 if [ "$ACTION" = "add" ] && [ -n "$DEVNAME" ] && [ -n "$ID_FS_TYPE" ]; then
 	# Do not perform fsck if device is already mounted
-	[ -z "$( grep "$DEVNAME" /etc/mtab)" ] && $FSCK -a $DEVNAME
+	[ -z "$( grep "$DEVNAME" /etc/mtab)" ] && [ "$ID_FS_TYPE" != "vfat"  ] && $FSCK -a $DEVNAME
 	if [ -x "$PMOUNT" ]; then
 		$PMOUNT $MOUNT_ARGS $DEVNAME 2> /dev/null
 	elif [ -x $MOUNT ]; then
@@ -107,3 +110,5 @@ if [ "$ACTION" = "remove" ] && [ -x "$UMOUNT" ] && [ -n "$DEVNAME" ]; then
 
 	test -e "/tmp/.automount-$name" && rm_dir "/mnt/$name"
 fi
+
+)&
