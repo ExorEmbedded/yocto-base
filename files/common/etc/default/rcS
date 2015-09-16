@@ -27,3 +27,6 @@ VOLATILE_ENABLE_CACHE=yes
 # Setting ROOTFS_READ_ONLY to yes and rebooting will give you a read-only rootfs.
 # Normally you should not change this value.
 ROOTFS_READ_ONLY=yes
+# Blocks in data partition reserved for internal system usage (e.g. nginx).
+# A hard quota for data users will be imposed on the remaining space.
+QUOTA_DATA_RESERVED="50000"

@@ -29,6 +29,7 @@ mount -t sysfs sysfs /sys
 
 # Source defaults.
 . /etc/default/rcS
+. /etc/exorint.funcs
 
 # Trap CTRL-C &c only in this shell so we can interrupt subprocesses.
 trap ":" INT QUIT TSTP
@@ -91,7 +92,9 @@ fi
 mkdir $MAINOSTMPMNT
 mkdir $DATATMPMNT
 mount -o ro $MAINOSPARTITION $MAINOSTMPMNT
-mount $DATAPARTITION $DATATMPMNT
+mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
+
+exorint_data_quotaon $DATATMPMNT $QUOTA_DATA_RESERVED
 
 # Update splash progress bar
 PROGRESS_STATE=10
