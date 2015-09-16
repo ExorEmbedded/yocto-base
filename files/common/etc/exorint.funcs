@@ -1,3 +1,5 @@
+# System-wide utility functions
+#
 # Note: uses Bash-specific syntax
 
 # e.g. "US01HSXXM01002003AB"
@@ -85,4 +87,23 @@ exorint_hostname()
     exorint_in_configos && echo -n "-recovery"
 
     return 0
+}
+
+# Activation of quota on data partition
+# $1 data partitin device
+# $2 reserved space
+exorint_data_quotaon()
+{
+    local DATAPARTITION=$1
+    local DATAPARTITIONRESERVED=$2
+    local DATAPARTITIONDF=`df -k $DATAPARTITION | tail -1`
+    local DATAPARTITIONUSED=`echo $DATAPARTITIONDF | awk '{printf $3}'`
+    local DATAPARTITIONFREE=`echo $DATAPARTITIONDF | awk '{printf $4}'`
+    local DATAPARTITIONQUOTA=`echo $DATAPARTITIONUSED + $DATAPARTITIONFREE - $DATAPARTITIONRESERVED | bc`
+
+    # Setup quota for data group users
+    quotacheck -cug $DATAPARTITION
+    chown root:root $DATAPARTITION/aquota*
+    setquota -g data 0 $DATAPARTITIONQUOTA 0 0 $DATAPARTITION
+    quotaon $DATAPARTITION
 }
