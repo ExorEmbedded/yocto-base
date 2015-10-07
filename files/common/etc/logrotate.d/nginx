@@ -1,0 +1,15 @@
+/var/log/nginx/access.log {
+    size 500k
+    sharedscripts
+    postrotate
+        test -r /var/run/nginx/nginx.pid && kill -USR1 `cat /var/run/nginx/nginx.pid`
+    endscript
+}
+
+/var/log/nginx/error.log {
+    size 100k
+    sharedscripts
+    postrotate
+        test -r /var/run/nginx/nginx.pid && kill -USR1 `cat /var/run/nginx/nginx.pid`
+    endscript
+}
