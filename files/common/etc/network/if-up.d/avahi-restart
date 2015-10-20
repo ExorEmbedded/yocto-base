@@ -6,6 +6,8 @@
 LOCK="/tmp/avahi-restart.lock"
 [ -e "${LOCK}" ] && exit 0
 
+find /etc/rc* | grep avahi-daemon > /dev/null || exit 0
+
 {
     touch "${LOCK}"
 
