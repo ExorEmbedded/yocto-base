@@ -23,6 +23,8 @@ ETCTMPMNT=/mnt/etcfs/
 FACTORYPARTITION=/dev/mmcblk1p1
 FACTORYTMPMNT=/mnt/factory/
 
+CMDFILE=/etc/updateCmd
+
 # Mount system fs
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
@@ -33,7 +35,7 @@ mount -t sysfs sysfs /sys
 
 # Trap CTRL-C &c only in this shell so we can interrupt subprocesses.
 trap ":" INT QUIT TSTP
- 
+
 mount -t tmpfs -o rw,size=1M tmpfs /mnt
 
 # Mount factory partition to get the splash image (if mount fails, perform format+mount)
@@ -93,6 +95,8 @@ mkdir $MAINOSTMPMNT
 mkdir $DATATMPMNT
 mount -o ro $MAINOSPARTITION $MAINOSTMPMNT
 mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
+
+[ -e $CMDFILE ] && /etc/updateCmd.sh
 
 exorint_data_quotaon $DATATMPMNT $QUOTA_DATA_RESERVED
 
