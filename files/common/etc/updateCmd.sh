@@ -159,7 +159,7 @@ case $cmd in
       epad_sync formatImage "string:$part"
    ;;
    "update")
-      psplash-write "MSG Upadating $part..."
+      psplash-write "MSG Updating $part..."
       epad_sync downloadImage "string:$part string:$pkg string: boolean:false"
    ;;
    *)
