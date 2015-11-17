@@ -198,10 +198,9 @@ apply_cfgfile() {
 	return 0
 }
 
-# A flag file that EPAD uses to check if log persistence is enabled
-[ ! -f $CFGDIR/pLogFlag ] && echo "n" > $CFGDIR/pLogFlag        
+logP=$( cat $CFGDIR/pLogFlag 2>/dev/null )
 
-logP=$( cat $CFGDIR/pLogFlag )
+mkdir -p $VOLATILELOGDIR
 
 # Move log files to a persistent fs
 if [ "$1" = "enable" ]; then
@@ -220,7 +219,7 @@ fi
 # Restore default log files location
 if [ "$1" = "disable" ]; then
         # Check if persistence mode is really enabled
-        [ "$logP" = "n" ] && exit 0
+        [ ! "$logP" = "y" ] && exit 0
         echo "n" > $CFGDIR/pLogFlag
         $SYSLOG	stop
 	umount -l $VOLATILELOGDIR
@@ -232,6 +231,12 @@ if [ "$1" = "disable" ]; then
 	$SYSLOG start
         rm -rf $PERSISTENTLOGDIR
 	exit 0
+fi
+
+# At boot time, mount persistent log location if persistence is enabled
+if [ "$logP" = "y" ]; then
+        mkdir -p $PERSISTENTLOGDIR
+        mount -o bind $PERSISTENTLOGDIR $VOLATILELOGDIR
 fi
 
 [ "${VERBOSE}" != "no" ] && echo "Populating volatile Filesystems."
@@ -266,8 +271,3 @@ then
 	ln -s /etc/ld.so.cache /var/run/ld.so.cache
 fi
 
-# At boot time, mount persistent log location if persistece is enabled
-if [ "$logP" = "y" ]; then
-        mkdir -p $PERSISTENTLOGDIR
-        mount -o bind $PERSISTENTLOGDIR $VOLATILELOGDIR
-fi
