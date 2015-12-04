@@ -2,6 +2,7 @@
 
 CMD_FILE="/mnt/data/updateCmd"
 LOG_FILENAME="updateLog"
+LOG_FILE="/mnt/data/$LOG_FILENAME"
 
 quit() {
    if [ $1 -gt 0 ]; then
@@ -18,8 +19,6 @@ quit() {
 
    # Clean all, in any case
    [ -e "$pkg" ] && rm -rf "$pkg" "$pkg.md5"
-   # In case we are on a Android panel
-   rm -rf '/mnt/data/$0030d8linux$.bin'
 
    echo -e "\n\n--- EPAD OUTPUT ---"
    cat $LOG_FILE.epad
@@ -106,26 +105,30 @@ cmd="$(cat "$CMD_FILE" | awk '{print $1}' )"
 part="$(cat "$CMD_FILE" | awk '{print $2}' )"
 pkg="$(cat "$CMD_FILE" | awk '{print $3}' )"
 
-mount -t tmpfs tmpfs /var/run
-
-if [ "$part" == "user" ]; then
-   LOG_FILE="/var/run/$LOG_FILENAME"
-else
-   LOG_FILE="/mnt/data/$LOG_FILENAME"
-fi
-
-exec &>$LOG_FILE
+# In case we are on a Android panel
+rm -rf '/mnt/data/$0030d8linux$.bin'
 
 # Check cmd file owner. Should be root(0), admin(10000) or system(1000)
 if ( stat -c %u "$CMD_FILE" | grep -vEq "0|1000|10000" ); then
-   echo "Error: File owned by unauthorized user"
+   echo "Error: File owned by unauthorized user" > $LOG_FILE
    rm -rf "$CMD_FILE"
    exit
 fi
 
-echo "Found cmd file: $(cat $CMD_FILE)"
-
 rm -rf "$CMD_FILE"
+
+if [ ! -f "$pkg" ]; then
+   echo "Error: Update package not found" > $LOG_FILE
+   exit
+fi
+
+mount -t tmpfs tmpfs /var/run
+
+[ "$part" == "user" ] && LOG_FILE="/var/run/$LOG_FILENAME"
+
+exec &>$LOG_FILE
+
+echo "Found cmd file: $(cat $CMD_FILE)"
 
 # Start EPAD manually so that we can have the log
 echo -e	"\n- Starting EPAD..."
