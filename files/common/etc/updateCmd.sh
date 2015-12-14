@@ -11,8 +11,6 @@ quit() {
       msg="OPERATION COMPLETED"
    fi
 
-   psplash-write "MSG $msg"
-   psplash-write "PROGRESS 100"
    sleep 6
 
    echo -e "\n- Cleaning..."
@@ -44,7 +42,7 @@ quit() {
    reboot -f
 }
 
-# Sync call to EPAD. Handles dbus signals and psplash loading bar
+# Sync call to EPAD. Handles dbus signals
 epad_sync() {
 
    echo	-e "\n- Executing EPAD call: dbus-send --print-reply --system --dest=com.exor.EPAD '/' com.exor.EPAD.$1 $2"
@@ -66,11 +64,7 @@ epad_sync() {
 
       case $member in
          "progress")
-            progress=$( echo "$line" | awk '{print $2}' )
-            if [ $progress -gt $(( $current + $step_length )) ]; then
-               current=$(( $current + $step_length))
-               psplash-write "PROGRESS $current"
-            fi
+            # psplash progress now handled directly in EPAD
             member=""
             ;;
          "statusChanged")
@@ -143,26 +137,14 @@ mkdir -p /var/run/dbus
 echo -e	"\n- Starting udev..."
 /etc/init.d/udev start
 
-echo -e "\n- Restarting psplash with --notouch..."
-psplash-write "QUIT"
-sleep 2
-/usr/bin/psplash --notouch &
-
 # Wait for udev processing.
 udevadm settle
 
-# Psplash loading bar handling
-STEPS=6
-current=0
-step_length=$((100/$STEPS))
-
 case $cmd in
    "format")
-      psplash-write "MSG Clearing $part..."
       epad_sync formatImage "string:$part"
    ;;
    "update")
-      psplash-write "MSG Updating $part..."
       epad_sync downloadImage "string:$part string:$pkg string: boolean:false"
    ;;
    *)
