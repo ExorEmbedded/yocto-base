@@ -55,8 +55,8 @@ exorint_ver_type()
         PLCM)
             echo -n "ROUTER"
             ;;
-        *)
-            return 1
+        *)  # generic/unknown device
+            echo -n "DEVICE"
             ;;
     esac
 }
