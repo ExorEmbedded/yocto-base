@@ -98,6 +98,8 @@ epad_sync() {
 cmd="$(cat "$CMD_FILE" | awk '{print $1}' )"
 part="$(cat "$CMD_FILE" | awk '{print $2}' )"
 pkg="$(cat "$CMD_FILE" | awk '{print $3}' )"
+user="$(cat "$CMD_FILE" | awk '{print $4}' )"
+pass="$(cat "$CMD_FILE" | awk '{print $5}' )"
 
 # In case we are on a Android panel
 rm -rf '/mnt/data/$0030d8linux$.bin'
@@ -145,7 +147,7 @@ case $cmd in
       epad_sync formatImage "string:$part"
    ;;
    "update")
-      epad_sync downloadImage "string:$part string:$pkg string: boolean:false"
+      epad_sync downloadImage "string:$part string:$pkg string: boolean:false string:$user string:$pass"
    ;;
    *)
       echo -e "\nUnknown command: $cmd"
