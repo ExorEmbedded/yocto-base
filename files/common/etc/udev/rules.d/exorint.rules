@@ -66,11 +66,17 @@ ACTION=="remove", KERNEL=="mmcblk0p[0-9]", SUBSYSTEM=="block", RUN+="/etc/udev/s
 SUBSYSTEMS=="input", KERNEL=="event[0-9]*", KERNELS=="input[0-9]*", ATTRS{name}=="pwm-beeper", SYMLINK+="input/beeper"
 
 # Create symlinks for uart ports (dev/ttyO0 -> dev/com1, dev/ttyO1 -> dev/com2, ...)
+# Links for UN60 and UN61
 KERNEL=="ttyO0", SUBSYSTEM=="tty", SYMLINK="com1"
 KERNEL=="ttyO1", SUBSYSTEM=="tty", SYMLINK="com2"
 KERNEL=="ttyO2", SUBSYSTEM=="tty", SYMLINK="com3"
 KERNEL=="ttyO3", SUBSYSTEM=="tty", SYMLINK="com4"
 KERNEL=="ttyO4", SUBSYSTEM=="tty", SYMLINK="com5"
+# Links for UN63
+KERNEL=="ttymxc0", SUBSYSTEM=="tty", SYMLINK="com1"
+KERNEL=="ttymxc1", SUBSYSTEM=="tty", SYMLINK="com2"
+KERNEL=="ttymxc2", SUBSYSTEM=="tty", SYMLINK="com3"
+KERNEL=="ttymxc3", SUBSYSTEM=="tty", SYMLINK="com4"
 
 # All other communication devices belong to 'comm' group (also plain 'user' belongs to it)
 KERNEL=="gpio*", PROGRAM="/bin/sh -c '\
