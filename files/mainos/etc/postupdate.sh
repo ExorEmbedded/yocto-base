@@ -12,7 +12,6 @@
 # 4. copy preserved files back to /etc(rw)
 #
 
-ROOTTMPMNT=$1
 UPDATEPATH="/tmp"
 PRESERVEDPATH="$UPDATEPATH/preservedFiles"
 
@@ -119,7 +118,7 @@ migrate() {
 }
 
 # Check if etc(ro) has a version file
-[ ! -f "$PACKAGEPATH/version" ] && exit 0
+[ ! -f "$PACKAGEPATH/version" ] && return
 
 # Get current /etc(rw) version
 rwEtcV="$( cat /etc/migrations/version )"
@@ -144,10 +143,17 @@ if [ $? = 255 ]; then
         rm -rf /etc/*
         # Copy updated etc file
         cp -a $ROOTTMPMNT/etc/. /etc
-	psplash-write "PROGRESS 100"
-	psplash-write "QUIT"
+        [ ! -e $FACTORYTMPMNT'shadow' ] && cp /etc/shadow $FACTORYTMPMNT
+        ln -s -b $FACTORYTMPMNT'shadow' /etc/shadow
+        sync
         umount $UPDATEPATH
-        exit 0
+        psplash-write "PROGRESS 100"
+
+        # Restart psplash
+        psplash-write "QUIT"
+        sleep 2
+        /usr/bin/psplash --angle $rotation &
+        return
 fi
 
 # Get update steps list from directory names
@@ -208,6 +214,9 @@ done
 
 # Finally restore preserved and migrated files
 cp -a $PRESERVEDPATH/etc/. /etc
+
+[ ! -e $FACTORYTMPMNT'shadow' ] && cp /etc/shadow $FACTORYTMPMNT
+ln -s -b $FACTORYTMPMNT'shadow' /etc/shadow
 
 psplash-write "PROGRESS 100"
 
