@@ -5,13 +5,6 @@ LOG_FILENAME="updateLog"
 LOG_FILE="/mnt/data/$LOG_FILENAME"
 
 quit() {
-   if [ $1 -gt 0 ]; then
-      msg="ERROR: $error"
-   else
-      msg="OPERATION COMPLETED"
-   fi
-
-   sleep 6
 
    echo -e "\n- Cleaning..."
 
@@ -23,12 +16,14 @@ quit() {
    echo -e "\n--- END EPAD OUTPUT ---"
 
    rm -rf $LOG_FILE.epad
-   [ -e "/tmp/$LOG_FILENAME" ] && cp /var/run/$LOG_FILENAME /mnt/data
+   [ -e "/var/run/$LOG_FILENAME" ] && cp /var/run/$LOG_FILENAME /mnt/data
    sync
 
    # Get current OS
    versTag="$(cat /boot/version)";
    currOS="${versTag:8:1}"
+
+   sleep 3
 
    # Reboot to the OS we came from
    if [ "$currOS" == "C" ]; then
@@ -73,7 +68,7 @@ epad_sync() {
                2)
                   # Status ok
                   echo "Got status ok from EPAD!"
-                  quit 0
+                  quit
                   ;;
                3)
                   # Status error
@@ -87,7 +82,7 @@ epad_sync() {
          "error")
             error="$( echo "$line" | cut -d"\"" -f2 )"
             echo "ERROR: $error"
-            quit 1
+            quit
       esac
 
    done < <(dbus-monitor --system type='signal')
@@ -111,13 +106,6 @@ if ( stat -c %u "$CMD_FILE" | grep -vEq "0|1000|10000" ); then
    exit
 fi
 
-rm -rf "$CMD_FILE"
-
-if [ ! -f "$pkg" ]; then
-   echo "Error: Update package not found" > $LOG_FILE
-   exit
-fi
-
 mount -t tmpfs tmpfs /var/run
 
 [ "$part" == "user" ] && LOG_FILE="/var/run/$LOG_FILENAME"
@@ -125,6 +113,7 @@ mount -t tmpfs tmpfs /var/run
 exec &>$LOG_FILE
 
 echo "Found cmd file: $(cat $CMD_FILE)"
+rm -rf "$CMD_FILE"
 
 # Start EPAD manually so that we can have the log
 echo -e	"\n- Starting EPAD..."
