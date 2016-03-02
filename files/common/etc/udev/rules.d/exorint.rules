@@ -77,6 +77,8 @@ KERNEL=="ttymxc0", SUBSYSTEM=="tty", SYMLINK="com1"
 KERNEL=="ttymxc1", SUBSYSTEM=="tty", SYMLINK="com2"
 KERNEL=="ttymxc2", SUBSYSTEM=="tty", SYMLINK="com3"
 KERNEL=="ttymxc3", SUBSYSTEM=="tty", SYMLINK="com4"
+# Links for UN64
+KERNEL=="ttyS0", SUBSYSTEM=="tty", SYMLINK="com1"
 
 # All other communication devices belong to 'comm' group (also plain 'user' belongs to it)
 KERNEL=="gpio*", PROGRAM="/bin/sh -c '\
