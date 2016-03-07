@@ -8,8 +8,10 @@ quit() {
 
    echo -e "\n- Cleaning..."
 
-   # Clean all, in any case
-   [ -e "$pkg" ] && rm -rf "$pkg" "$pkg.md5"
+   # Delete package if it resides on mmc
+   if ( df "$pkg" | sed -n 2p | awk '{print $1}' | grep -q '/dev/mmcblk1' ); then
+      [ -e "$pkg" ] && rm -rf "$pkg" "$pkg.md5"
+   fi
 
    echo -e "\n\n--- EPAD OUTPUT ---"
    cat $LOG_FILE.epad
@@ -40,9 +42,9 @@ quit() {
 # Sync call to EPAD. Handles dbus signals
 epad_sync() {
 
-   echo	-e "\n- Executing EPAD call: dbus-send --print-reply --system --dest=com.exor.EPAD '/' com.exor.EPAD.$1 $2"
+   echo -e "\n- Executing EPAD call: dbus-send --print-reply --system --dest=com.exor.EPAD '/' com.exor.EPAD.$1 $2"
 
-   dbus-send --print-reply --system --dest=com.exor.EPAD '/' com.exor.EPAD.$1 $2 &
+   /bin/bash -c "dbus-send --print-reply --system --dest=com.exor.EPAD '/' com.exor.EPAD.$1 $2" &
 
    member=""
 
@@ -90,11 +92,12 @@ epad_sync() {
 
 
 # Parse cmd file
-cmd="$(cat "$CMD_FILE" | awk '{print $1}' )"
-part="$(cat "$CMD_FILE" | awk '{print $2}' )"
-pkg="$(cat "$CMD_FILE" | awk '{print $3}' )"
-user="$(cat "$CMD_FILE" | awk '{print $4}' )"
-pass="$(cat "$CMD_FILE" | awk '{print $5}' )"
+eval cmd_file=($(cat "$CMD_FILE"))
+cmd="${cmd_file[0]}"
+part="${cmd_file[1]}"
+pkg="${cmd_file[2]}"
+user="${cmd_file[3]}"
+pass="$(cmd_file[4])"
 
 # In case we are on a Android panel
 rm -rf '/mnt/data/$0030d8linux$.bin'
@@ -133,10 +136,10 @@ udevadm settle
 
 case $cmd in
    "format")
-      epad_sync formatImage "string:$part"
+      epad_sync formatImage "string:'$part'"
    ;;
    "update")
-      epad_sync downloadImage "string:$part string:$pkg string: boolean:false string:$user string:$pass"
+      epad_sync downloadImage "string:'$part' string:'$pkg' string: boolean:false string:'$user' string:'$pass'"
    ;;
    *)
       echo -e "\nUnknown command: $cmd"
