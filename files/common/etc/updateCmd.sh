@@ -97,7 +97,7 @@ cmd="${cmd_file[0]}"
 part="${cmd_file[1]}"
 pkg="${cmd_file[2]}"
 user="${cmd_file[3]}"
-pass="$(cmd_file[4])"
+pass="${cmd_file[4]}"
 
 # In case we are on a Android panel
 rm -rf '/mnt/data/$0030d8linux$.bin'
