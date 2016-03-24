@@ -89,6 +89,12 @@ SUBSYSTEM=="spidev", GROUP="comm", MODE="0660"
 SUBSYSTEM=="i2c-dev", GROUP="comm", MODE="0660"
 
 #
+# FRAM
+#
+
+SUBSYSTEM=="spi", ATTRS{modalias}=="spi:at25", PROGRAM="/bin/ln -s /sys/bus/spi/devices/%k/eeprom /dev/fram"
+
+#
 # Video
 #
 
