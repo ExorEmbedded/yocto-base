@@ -103,7 +103,8 @@ exorint_data_quotaon $DATATMPMNT $QUOTA_DATA_RESERVED
 # Post-processing - setup other links to factory (global settings)
 [ ! -L /etc/pointercal.xinput ] && ln -sf $FACTORYTMPMNT/etc/pointercal.xinput /etc/pointercal.xinput
 [ ! -L /etc/rotation ] && ln -sf $FACTORYTMPMNT/etc/rotation /etc/rotation
-[ ! -L /etc/X11/xorg.conf.d/x11-rotate.conf ] && ln -sf $FACTORYTMPMNT/etc/X11/xorg.conf.d/x11-rotate.conf /etc/X11/xorg.conf.d/x11-rotate.conf
+[ ! -L /etc/X11/xorg.conf.d/x11-rotate.conf ] && mkdir -p /etc/X11/xorg.conf.d && \
+    ln -sf $FACTORYTMPMNT/etc/X11/xorg.conf.d/x11-rotate.conf /etc/X11/xorg.conf.d/x11-rotate.conf
 
 # Update splash progress bar
 PROGRESS_STATE=10
