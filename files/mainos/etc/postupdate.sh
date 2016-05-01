@@ -7,7 +7,7 @@
 # 1. save files according to current version default file (the last default file in migrations folder before current version) copying files to a temp folder
 # 2. iteratively applies migration steps:
 #    a. update the default file list according to new default files in the migration folder and preserve newly preserved files or discard old preserved files no more in the default list
-#    b. execute the migrate.sh script from the temporary preserved file path to change (migrate) preserved files, if existing
+#    b. execute the pre.sh and post.sh scripts from the temporary preserved file path to change (migrate) preserved files, if existing
 # 3. erase /etc(rw) and copy /etc(ro) over it
 # 4. copy preserved files back to /etc(rw)
 #
@@ -90,6 +90,7 @@ versionCompare() {
 
 # Do changes required from an update step
 migrate() {
+	[ -f "$PACKAGEPATH/to_$1/pre.sh" ] && $PACKAGEPATH/to_$1/pre.sh $PRESERVEDPATH
 	# Update preserved files
         if [ -f "$PACKAGEPATH/to_$1/default" ]; then
                 # Find files to discard by comparing old default file with new one
@@ -114,7 +115,7 @@ migrate() {
                 currDefFile="$PACKAGEPATH/to_$1/default"
         fi
         # Execute migration script
-        [ -f "$PACKAGEPATH/to_$1/migrate.sh" ] && $PACKAGEPATH/to_$1/migrate.sh $PRESERVEDPATH
+        [ -f "$PACKAGEPATH/to_$1/post.sh" ] && $PACKAGEPATH/to_$1/post.sh $PRESERVEDPATH
 }
 
 # Check if etc(ro) has a version file
