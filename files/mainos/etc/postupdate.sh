@@ -31,22 +31,43 @@ sleep 2
 currProgress=0
 numSteps=0
 
+#
+# utilities
+#
+
 # Updates progress bar by specifies amount
 update_progress() {
 	currProgress=$(( $currProgress + $1 ))
 	psplash-write "PROGRESS $currProgress"
 }
+
+# TODO
+#   - possible optimization
+#
+# $1: dir to create
+# $2: dir to copy permissions from
+mkdirPreserve() {
+    [ -e $1 ] && return 0
+
+    mkdir -p $1
+    chown $(stat -c "%U" $2) $1
+    chgrp $(stat -c "%G" $2) $1
+    chmod $(stat -c "%a" $2) $1
+}
     
-# utilities
+# TODO
+#   - this handles permissions only of directories specified in 'default' file and their children;
+#     if we ever need to preserve permissions of ancestors (e.g. one/two/three), this will need to be extended
+#
 # Saves file in /tmp/preservedFiles
 preserveFile() {
         echo "Preserving $1..."
         [ ! -e "$1" ] && return 0
         path="$( dirname $1 )"
-        mkdir -p $PRESERVEDPATH/$path
+        mkdirPreserve $PRESERVEDPATH/$path $path
         # Copy without override
         for f in $( find $1 ); do
-                [ -d $f ] && mkdir -p $PRESERVEDPATH/$f && continue
+                [ -d $f ] && mkdirPreserve $PRESERVEDPATH/$f $f && continue
                 [ -f $PRESERVEDPATH/$f ] && continue
                 cp -a $f $PRESERVEDPATH/$f
         done
