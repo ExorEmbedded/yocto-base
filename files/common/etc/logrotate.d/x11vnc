@@ -1,0 +1,4 @@
+# no way to reconfigure running x11vnc daemon? log will be truncated
+/var/log/x11vnc.log {
+    size 50k
+}
