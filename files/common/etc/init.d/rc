@@ -170,6 +170,7 @@ startup() {
   fi
 
 # blank screen on exit
-if [ "x$runlevel" != "xS" ]; then
-	[ -e /dev/fb0 ] && cat /dev/zero > /dev/fb0
-fi
+#Commentato, in FastBoot cancella lo schermo ad applicazione già avviata
+#if [ "x$runlevel" != "xS" ]; then
+#	[ -e /dev/fb0 ] && cat /dev/zero > /dev/fb0
+#fi
