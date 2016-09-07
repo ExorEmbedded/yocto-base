@@ -139,7 +139,7 @@ then
     mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
 else
     mkdir $DATATMPMNT
-    mount -o $DATAPARTITION $DATATMPMNT
+    mount $DATAPARTITION $DATATMPMNT
 fi
 
 [ -e $CMDFILE ] && /etc/updateCmd.sh
