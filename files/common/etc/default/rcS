@@ -23,6 +23,7 @@ if [ $? -eq 0 ]
 then
     ENABLE_FASTBOOT=yes;
     ENABLE_ROOTFS_FSCK=no;
+    FASTBOOT=qthmi;
 else
     ENABLE_FASTBOOT=no;
     ENABLE_ROOTFS_FSCK=yes;
