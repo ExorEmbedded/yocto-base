@@ -108,7 +108,7 @@ bspVers="$( cat /boot/version )"
 if [ ! "$etcVers" = "$bspVers" ]; then
    mkdir -p $ROOTTMPMNT
    mount -o bind / $ROOTTMPMNT
-   . $ROOTTMPMNT/etc/postupdate.sh
+   . $ROOTTMPMNT/etc/migrations/postupdate.sh
    umount -l $ROOTTMPMNT
    rm -r $ROOTTMPMNT
 fi
