@@ -1,6 +1,11 @@
 #!/bin/bash
 #
 # Preupdate script file
+#
+# NOTE: currently called only when updating MainOS (from ConfigOS)
+
+MAINOS_ROOT="/mnt/mainos"
+SETTINGS_ROOT="/mnt/etc"
 
 # Handle special case for init script migration: postupdate.sh cannot distinguish between services which 
 # have been disabled by user (must stay disabled), and new services which are not in settings yet
@@ -9,25 +14,17 @@
 markInitDisabled()
 {
     local name
-    local rootTmp
 
-    rootTmp=/mnt/tmpRoot
-    mkdir -p ${rootTmp}
-    mount -o bind / ${rootTmp}
+    rm -f ${SETTINGS_ROOT}/rc5.d/.*.disabled
 
-    rm -f /etc/rc5.d/.*.disabled
-
-    for script in $(ls ${rootTmp}/etc/rc5.d/); do
+    for script in $(ls ${MAINOS_ROOT}/etc/rc5.d/); do
         name=${script:3}
 
-        if ! ls /etc/rc5.d/ | grep -q "S[0-9][0-9]${name}$"; then
+        if ! ls ${SETTINGS_ROOT}/rc5.d/ | grep -q "S[0-9][0-9]${name}$"; then
             echo "Marking '${name}' as disabled"
-            touch /etc/rc5.d/.${name}.disabled
+            touch ${SETTINGS_ROOT}/rc5.d/.${name}.disabled
         fi
     done
-
-    umount -l ${rootTmp}
-    rm -rf ${rootTmp}
 }
 
 markInitDisabled
