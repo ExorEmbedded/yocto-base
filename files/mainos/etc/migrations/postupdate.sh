@@ -41,8 +41,7 @@ update_progress() {
 	psplash-write "PROGRESS $currProgress"
 }
 
-# TODO
-#   - possible optimization
+# Create a directory preserving permissions
 #
 # $1: dir to create
 # $2: dir to copy permissions from
@@ -73,7 +72,7 @@ preserveFile() {
         done
 }
 
-# Removes file from /tmp/preservdFiles
+# Removes file from /tmp/preservedFiles
 discardFile() {
         echo "Removing $1 from preserved files..."
         [ -e "$PRESERVEDPATH/$1" ] && rm -rf $PRESERVEDPATH/$1
@@ -133,18 +132,6 @@ preserveInit() {
                 fi
         done
 }
-
-# Cases:
-# 2) new script with rc added but not found in s.rc ..
-#       a) was disabled by user     => don't copy       \
-#       b) new                      => copy             /  distinguish => otherwise will reenable disabled stuff
-#                                                               SSH:   disabled on image, but enabled by user => NOP (keep setting but rc will change after)
-#                                                               Avahi: enabled on image, but disabled by user => nothing!*
-# 3) new script without rc => NOP
-# 3) new script to be installed VS existing service disabled by user.. => cannot distinguish
-#
-#=> covered ALL 
-
 
 # Input: [version1] [version2] , eg 1_2_3 5_6_7
 # Returns: 255 if version1  version2
