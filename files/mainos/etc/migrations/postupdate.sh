@@ -305,4 +305,5 @@ psplash-write "QUIT"
 sleep 2
 /usr/bin/psplash --angle $rotation &
 
-exit 0
+# This script is sourced by /etc/init.d/rcS - don't exit
+#exit 0
