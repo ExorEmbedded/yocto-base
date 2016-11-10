@@ -5,6 +5,7 @@ LOG_FILENAME="updateLog"
 LOG_FILE="/mnt/data/$LOG_FILENAME"
 
 quit() {
+   rc=$1
 
    echo -e "\n- Cleaning..."
 
@@ -19,6 +20,7 @@ quit() {
 
    rm -rf $LOG_FILE.epad
    [ -e "/var/run/$LOG_FILENAME" ] && cp /var/run/$LOG_FILENAME /mnt/data
+   [ $rc -ne 0 ] && cp /mnt/data/$LOG_FILENAME /mnt/data/$LOG_FILENAME-last-ko
    sync
 
    # Get current OS
@@ -70,7 +72,7 @@ epad_sync() {
                2)
                   # Status ok
                   echo "Got status ok from EPAD!"
-                  quit
+                  quit 0
                   ;;
                3)
                   # Status error
@@ -84,7 +86,7 @@ epad_sync() {
          "error")
             error="$( echo "$line" | cut -d"\"" -f2 )"
             echo "ERROR: $error"
-            quit
+            quit 1
       esac
 
    done < <(dbus-monitor --system type='signal')
@@ -114,6 +116,8 @@ mount -t tmpfs tmpfs /var/run
 [ "$part" == "user" ] && LOG_FILE="/var/run/$LOG_FILENAME"
 
 exec &>$LOG_FILE
+
+echo "Update starting at $(date)"
 
 echo "Found cmd file: $(cat $CMD_FILE)"
 rm -rf "$CMD_FILE"
