@@ -41,8 +41,7 @@ update_progress() {
 	psplash-write "PROGRESS $currProgress"
 }
 
-# TODO
-#   - possible optimization
+# Create a directory preserving permissions
 #
 # $1: dir to create
 # $2: dir to copy permissions from
@@ -54,7 +53,7 @@ mkdirPreserve() {
     chgrp $(stat -c "%G" $2) $1
     chmod $(stat -c "%a" $2) $1
 }
-    
+
 # TODO
 #   - this handles permissions only of directories specified in 'default' file and their children;
 #     if we ever need to preserve permissions of ancestors (e.g. one/two/three), this will need to be extended
@@ -73,10 +72,65 @@ preserveFile() {
         done
 }
 
-# Removes file from /tmp/preservdFiles
+# Removes file from /tmp/preservedFiles
 discardFile() {
         echo "Removing $1 from preserved files..."
         [ -e "$PRESERVEDPATH/$1" ] && rm -rf $PRESERVEDPATH/$1
+}
+
+# Post-processing to merge init scripts (rc5.d only)
+#
+# Requires special handling so priorities can be changed but on/off settings remain
+preserveInit() {
+        local preservedName
+        local newName
+        local found
+
+        echo "Migrating init script settings"
+
+        for newFile in $(ls ${ROOTTMPMNT}/etc/rc5.d); do
+                newName=${newFile:3}
+                found=0
+                for preservedFile in $(ls ${PRESERVEDPATH}/etc/rc5.d); do
+                        preservedName=${preservedFile:3}
+                        if [ "${newName}" = "${preservedName}" ]; then
+                                if [ "${preservedFile}" != "${newFile}" ]; then
+                                        echo "[CASE 1] Migrating changed init order: '${preservedFile}' -> '${newFile}'"
+                                        mv ${PRESERVEDPATH}/etc/rc5.d/${preservedFile} ${PRESERVEDPATH}/etc/rc5.d/${newFile}
+                                fi
+                                found=1
+                                break
+                        fi
+                done
+                if [ $found -eq 0 ]; then
+                        if [ -r ${PRESERVEDPATH}/etc/rc5.d/.${newName}.disabled ]; then
+                            echo "[CASE 2a] Script '${newName}' was disabled by user: doing nothing"
+                        else
+                            echo "[CASE 2b] Script '${newFile}' not found in settings: copying from root"
+                            cp -a ${ROOTTMPMNT}/etc/rc5.d/${newFile} ${PRESERVEDPATH}/etc/rc5.d/
+                        fi
+                fi
+        done
+
+        for preservedFile in $(ls ${PRESERVEDPATH}/etc/rc5.d); do
+                preservedName=${preservedFile:3}
+                found=0
+                for newFile in $(ls ${ROOTTMPMNT}/etc/rc5.d); do
+                        newName=${newFile:3}
+                        if [ "${newName}" = "${preservedName}" ]; then
+                                found=1
+                                break;
+                        fi
+                done
+                if [ $found -eq 0 ]; then
+                    if [ -e ${ROOTTMPMNT}/etc/init.d/${preservedName} ]; then
+                        echo "[CASE 3a] Script '${preservedName}' enabled in settings but not in rootfs: keeping preference"
+                    else
+                        echo "[CASE 3b] Script '${preservedName}' found in settings but not in rootfs: removing file"
+                        rm ${PRESERVEDPATH}/etc/rc5.d/${preservedFile}
+                    fi
+                fi
+        done
 }
 
 # Input: [version1] [version2] , eg 1_2_3 5_6_7
@@ -209,6 +263,8 @@ while read line; do
         preserveFile "$file"
 done < "$currDefFile"
 
+preserveInit
+
 update_progress $step
 
 # Iterative update from current to last installed version passing through all
@@ -248,3 +304,6 @@ umount $UPDATEPATH
 psplash-write "QUIT"
 sleep 2
 /usr/bin/psplash --angle $rotation &
+
+# This script is sourced by /etc/init.d/rcS - don't exit
+#exit 0

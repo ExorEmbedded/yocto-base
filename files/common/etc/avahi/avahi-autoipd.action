@@ -87,7 +87,7 @@ fi
 
 case "$1" in
     BIND)
-        find /etc/rc* | grep avahi-daemon > /dev/null || exit 0
+        [ -e /etc/rc5.d/S[0-9][0-9]avahi-daemon ] || exit 0
         /etc/init.d/avahi-daemon restart
         ;;
 esac

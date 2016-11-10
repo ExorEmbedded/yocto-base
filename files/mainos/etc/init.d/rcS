@@ -108,7 +108,7 @@ bspVers="$( cat /boot/version )"
 if [ ! "$etcVers" = "$bspVers" ]; then
    mkdir -p $ROOTTMPMNT
    mount -o bind / $ROOTTMPMNT
-   . $ROOTTMPMNT/etc/postupdate.sh
+   . $ROOTTMPMNT/etc/migrations/postupdate.sh
    umount -l $ROOTTMPMNT
    rm -r $ROOTTMPMNT
 fi
@@ -147,6 +147,11 @@ mount -o bind $DATATMPMNT/home /home
 PROGRESS_STATE=10
 echo $PROGRESS_STATE > $TMPDIR/progress_state 
 psplash-write "PROGRESS $PROGRESS_STATE"
+
+# Force bootcounter reset for blind devices (done by psplash for panels)
+if [ "$(exorint_ver_carrier)" = "PLCM" ]; then
+    psplash-write "QUIT"
+fi
 
 # Call all parts in order
 exec /etc/init.d/rc S
