@@ -1,0 +1,8 @@
+#!/bin/bash
+
+[ -z ${DISPLAY} ] && export DISPLAY=":0"
+
+/usr/bin/xset dpms force off
+/usr/bin/dbus-send --print-reply --system --dest=com.exor.EPAD '/Backlight' com.exor.EPAD.Backlight.stateNotification string:"${DISPLAY}" int32:0
+
+exit 0
