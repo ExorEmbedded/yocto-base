@@ -1,7 +1,7 @@
 #!/bin/sh
 
-ln -s /dev/input/event1 			/dev/input/beeper
-#ln -s /dev/input/event0 			/dev/input/touchscreen0
+ln -s /dev/input/event0 			/dev/input/beeper
+ln -s /dev/input/event2 			/dev/input/touchscreen0
 ln -s /dev/rtc0         			/dev/rtc
 ln -s /proc/self/fd/2   			/dev/stderr
 ln -s /proc/self/fd/1   			/dev/stdout
