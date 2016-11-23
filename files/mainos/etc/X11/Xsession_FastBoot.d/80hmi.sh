@@ -1,7 +1,7 @@
 #!/bin/sh
 
-#ln -s /dev/input/event1 			/dev/input/beeper
-#ln -s /dev/input/event0 			/dev/input/touchscreen0
+ln -s /dev/input/event0 			/dev/input/beeper
+ln -s /dev/input/event2 			/dev/input/touchscreen0
 ln -s /dev/rtc0         			/dev/rtc
 ln -s /proc/self/fd/2   			/dev/stderr
 ln -s /proc/self/fd/1   			/dev/stdout
@@ -31,11 +31,11 @@ if [[ -e /etc/nokiosk ]] ; then
 	DISPLAY=:0 dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchDesktop
 else
 	if [ ! -z "$FASTBOOT" ] ; then
-        echo "HMI: KIOSK - FASTBOOT" | logger
-        cd /mnt/data/hmi/$FASTBOOT
-        ./run.sh &
-        sleep 20;
-    else
+		echo "HMI: KIOSK - FASTBOOT" | logger
+		cd /mnt/data/hmi/$FASTBOOT
+		./run.sh &
+		sleep 20;
+	else
 		echo "HMI: KIOSK" | logger
 		# starts the desktop
 		DISPLAY=:0 dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchHMI | logger
