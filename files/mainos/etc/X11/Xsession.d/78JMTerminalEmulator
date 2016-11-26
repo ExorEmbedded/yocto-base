@@ -1,0 +1,54 @@
+#!/bin/bash
+#
+# UN66: Start Terminal Emulator when no projects are loaded [#472]
+
+. /etc/exorint.funcs
+
+[ "$(exorint_ver_bsp)" != "UN66" ] && exit 0
+
+PROG="$(basename $0)"
+
+log()
+{
+    echo "$@" | logger -t "${PROG}"
+}
+
+START_WHEN_NO_PROJECTS=$(dbus-send --print-reply=literal --system --dest=com.exor.EPAD '/' \
+                         com.exor.EPAD.getSystemParameter string:"carel/services/terminalEmulator/startWhenNoProjects" \
+                         | tr -d ' ')
+JMOBILE_SYSTEM_FILE="/mnt/data/hmi/qthmi/deploy/config/system.xml"
+JMOBILE_WORKSPACE_DIR="/mnt/data/hmi/qthmi/deploy/workspace"
+
+[ ! -e "${JMOBILE_SYSTEM_FILE}" ] && exit 0
+
+if [ "${START_WHEN_NO_PROJECTS}" = "1" ]; then
+    log "Enabled via System Parameters"
+    if grep -q "<projectName/>" "${JMOBILE_SYSTEM_FILE}"; then
+        log "No project set in $(basename ${JMOBILE_SYSTEM_FILE}) - forcing Terminal Emulator"
+        sed -i \
+            -e "s|<projectRelativePath/>|<projectRelativePath>workspace/_builtin/terminal_emulator</projectRelativePath>|" \
+            -e "s|<projectName/>|<projectName>terminal_emulator.jpr</projectName>|" \
+            "${JMOBILE_SYSTEM_FILE}"
+    elif grep -q "<projectName>terminal_emulator.jpr</projectName>" "${JMOBILE_SYSTEM_FILE}"; then
+        log "Terminal Emulator set in $(basename ${JMOBILE_SYSTEM_FILE})"
+        OTHER_PROJECTS=$(find "${JMOBILE_WORKSPACE_DIR}" -type f -name *.jpr | grep -v '/terminal_emulator.jpr$')
+        if [ "${OTHER_PROJECTS}" = "" ]; then
+            log "No other projects found => doing nothing"
+        else
+            MOST_RECENT_PROJECT_FILE=$(ls -Art ${OTHER_PROJECTS} | tail -n 1)
+            MOST_RECENT_PROJECT_NAME=$(basename ${MOST_RECENT_PROJECT_FILE} .jpr)
+            log "Restoring most recent project: ${MOST_RECENT_PROJECT_NAME}"
+            # Note: we assume project file name is the same as project dir
+            sed -i \
+                -e "s|<projectRelativePath>.*$|<projectRelativePath>workspace/${MOST_RECENT_PROJECT_NAME}</projectRelativePath>|" \
+                -e "s|<projectName>.*$|<projectName>${MOST_RECENT_PROJECT_NAME}.jpr</projectName>|" \
+                "${JMOBILE_SYSTEM_FILE}"
+        fi
+    else
+        log "Other project set => doing nothing"
+    fi
+else
+    log "Disabled via System Parameters"
+fi
+
+exit 0
