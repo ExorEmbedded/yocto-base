@@ -4,7 +4,7 @@
 
 . /etc/exorint.funcs
 
-[ "$(exorint_ver_bsp)" != "UN66" ] && exit 0
+[ "$(exorint_ver_bsp)" != "UN66" ] && return
 
 PROG="$(basename $0)"
 
@@ -19,7 +19,7 @@ START_WHEN_NO_PROJECTS=$(dbus-send --print-reply=literal --system --dest=com.exo
 JMOBILE_SYSTEM_FILE="/mnt/data/hmi/qthmi/deploy/config/system.xml"
 JMOBILE_WORKSPACE_DIR="/mnt/data/hmi/qthmi/deploy/workspace"
 
-[ ! -e "${JMOBILE_SYSTEM_FILE}" ] && exit 0
+[ ! -e "${JMOBILE_SYSTEM_FILE}" ] && return
 
 if [ "${START_WHEN_NO_PROJECTS}" = "1" ]; then
     log "Enabled via System Parameters"
@@ -50,5 +50,3 @@ if [ "${START_WHEN_NO_PROJECTS}" = "1" ]; then
 else
     log "Disabled via System Parameters"
 fi
-
-exit 0
