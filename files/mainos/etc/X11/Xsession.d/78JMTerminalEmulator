@@ -23,11 +23,11 @@ JMOBILE_WORKSPACE_DIR="/mnt/data/hmi/qthmi/deploy/workspace"
 
 if [ "${START_WHEN_NO_PROJECTS}" = "1" ]; then
     log "Enabled via System Parameters"
-    if grep -q "<projectName/>" "${JMOBILE_SYSTEM_FILE}"; then
+    if grep -q "<projectName\ */>" "${JMOBILE_SYSTEM_FILE}"; then
         log "No project set in $(basename ${JMOBILE_SYSTEM_FILE}) - forcing Terminal Emulator"
         sed -i \
-            -e "s|<projectRelativePath/>|<projectRelativePath>workspace/_builtin/terminal_emulator</projectRelativePath>|" \
-            -e "s|<projectName/>|<projectName>terminal_emulator.jpr</projectName>|" \
+            -e "s|<projectRelativePath\ */>|<projectRelativePath>workspace/_builtin/terminal_emulator</projectRelativePath>|" \
+            -e "s|<projectName\ */>|<projectName>terminal_emulator.jpr</projectName>|" \
             "${JMOBILE_SYSTEM_FILE}"
     elif grep -q "<projectName>terminal_emulator.jpr</projectName>" "${JMOBILE_SYSTEM_FILE}"; then
         log "Terminal Emulator set in $(basename ${JMOBILE_SYSTEM_FILE})"
