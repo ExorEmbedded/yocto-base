@@ -1,8 +1,29 @@
 #!/bin/bash
 
-[ -z ${DISPLAY} ] && export DISPLAY=":0"
+# Function used to set the backlight in case EPAD is not responding. This is
+# to avoid having the panel possibly stuck with the backlight on or off. Also dbus
+# notifications won't be sent in this case.
+function noDbusSet {
+        echo "Backlight timeout: error contacting EPAD" | logger -t BACKLIGHT
+        blSysPath="$( echo /sys/class/backlight/backlight* )"
 
-/usr/bin/xset dpms force off
-/usr/bin/dbus-send --print-reply --system --dest=com.exor.EPAD '/Backlight' com.exor.EPAD.Backlight.stateNotification string:"${DISPLAY}" int32:0
+        if [ "$1" == "off" ]; then
+                sudo su -c "echo 0 > $blSysPath/brightness"
+        else
+		# Just use the max brightness in this case
+                sudo su -c "cat $blSysPath/max_brightness > $blSysPath/brightness"
+        fi
+}
 
-exit 0
+function wakeUp {
+        dbus-send --print-reply --system --dest=com.exor.EPAD '/Backlight' com.exor.EPAD.Backlight.DPMSOn
+        [ $? -ne 0 ] && noDbusSet on
+        pkill -TERM -P $$
+}
+
+trap wakeUp EXIT
+
+dbus-send --print-reply --system --dest=com.exor.EPAD '/Backlight' com.exor.EPAD.Backlight.DPMSOff
+[ $? -ne 0 ] && noDbusSet off
+
+xscreensaver-command -watch
