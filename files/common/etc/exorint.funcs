@@ -9,8 +9,11 @@ if [[ ${#BSP_VERSION} -ne 17 && ${#BSP_VERSION} -ne 19 ]]; then
     exit 1
 fi
 
+# Read the hw code from SEEPROM
+HW_CODE="$(dd if=/sys/class/i2c-dev/i2c-0/device/0-0054/eeprom bs=1 count=1 skip=4 2>/dev/null | hexdump -e '16/1 "%02d"' | xargs)"
+
 # e.g. "UN60"
-exorint_ver_cpu()
+exorint_ver_bsp()
 {
     echo -n "${BSP_VERSION:0:4}"
 }
@@ -48,8 +51,17 @@ exorint_ver_build()
 # Get product type based on carrier
 exorint_ver_type()
 {
+
+    # We want to identify the eXware as ROUTER. As the carrier name is the same as
+    # the eX705 we need to use the hw code to distinguish between the two.
+    # 127 is the eXware hw code.
+    if [ -n "$HW_CODE" -a "$HW_CODE" -eq "127" ]; then
+            echo -n "ROUTER"
+            return
+    fi
+
     case $(exorint_ver_carrier) in
-        HSXX)
+        HSXX|HS07)
             echo -n "HMI"
             ;;
         PLCM)
