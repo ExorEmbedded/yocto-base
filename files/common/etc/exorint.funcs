@@ -64,7 +64,7 @@ exorint_ver_type()
         HSXX|HS07)
             echo -n "HMI"
             ;;
-        PLCM)
+        PLCM|NA16)
             echo -n "ROUTER"
             ;;
         *)  # generic/unknown device

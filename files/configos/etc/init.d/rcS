@@ -112,7 +112,7 @@ echo $PROGRESS_STATE > $TMPDIR/progress_state
 psplash-write "PROGRESS $PROGRESS_STATE"
 
 # Force bootcounter reset for blind devices (done by psplash for panels)
-if [ "$(exorint_ver_carrier)" = "PLCM" ]; then
+if [ "$(exorint_ver_type)" = "ROUTER" ]; then
     psplash-write "QUIT"
 fi
 
