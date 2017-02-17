@@ -1,21 +1,3 @@
-. /etc/network/defaults
+. /etc/exorint.funcs
 
-metric=999
-if [ $IFACE = "br0" ]; then
-   metric=50
-elif [ $IFACE = $WAN_INTERFACE ]; then
-   metric=90
-elif echo $IFACE | grep -E -q "^eth[0-9]+"; then
-   metric=$(( 100 + (${IFACE:3}*10) )) # ethX has metric 100+10x
-elif iw dev | grep -q "Interface $IFACE"; then
-   metric=80
-fi
-
-route -n | grep $IFACE | while read -r line; do
-    dest=$(echo $line | cut -d ' ' -f 1)
-    gw=$(echo $line | cut -d ' ' -f 2)
-    mask=$(echo $line | cut -d ' ' -f 3)
-    [ "$gw" != "0.0.0.0" ] && continue
-    route del -net $dest netmask $mask dev $IFACE
-    route add -net $dest netmask $mask dev $IFACE metric $metric
-done
+exorint_iface_metric_apply $IFACE
