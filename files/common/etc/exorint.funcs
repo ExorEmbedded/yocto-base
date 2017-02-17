@@ -2,6 +2,8 @@
 #
 # Note: uses Bash-specific syntax
 
+. /etc/network/defaults
+
 # e.g. "US01HSXXM01002003AB"
 BSP_VERSION="$(cat /boot/version)"
 if [[ ${#BSP_VERSION} -ne 17 && ${#BSP_VERSION} -ne 19 ]]; then
@@ -118,4 +120,39 @@ exorint_data_quotaon()
     chown root:root $DATAPARTITION/aquota*
     setquota -g data 0 $DATAPARTITIONQUOTA 0 0 $DATAPARTITION
     quotaon $DATAPARTITION
+}
+
+exorint_iface_metric()
+{
+    local iface=$1
+    local metric=999
+
+    if [ $iface = "br0" ]; then
+       metric=50
+    elif [ $iface = $WAN_INTERFACE ]; then
+       metric=90
+    elif echo $iface | grep -E -q "^eth[0-9]+"; then
+       metric=$(( 100 + (${iface:3}*10) )) # ethX has metric 100+10x
+    elif iw dev | grep -q "Interface $iface"; then
+       metric=80
+    fi
+
+    echo $metric
+}
+
+exorint_iface_metric_apply()
+{
+    local iface=$1
+    local metric=$2
+
+    [ -z $metric ] && metric=$(exorint_iface_metric $iface)
+
+    route -n | grep $iface | while read -r line; do
+        dest=$(echo $line | cut -d ' ' -f 1)
+        gw=$(echo $line | cut -d ' ' -f 2)
+        mask=$(echo $line | cut -d ' ' -f 3)
+        [ "$gw" != "0.0.0.0" ] && continue
+        route del -net $dest netmask $mask dev $iface
+        route add -net $dest netmask $mask dev $iface metric $metric
+    done
 }
