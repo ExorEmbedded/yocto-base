@@ -151,8 +151,11 @@ exorint_iface_metric_apply()
         dest=$(echo $line | cut -d ' ' -f 1)
         gw=$(echo $line | cut -d ' ' -f 2)
         mask=$(echo $line | cut -d ' ' -f 3)
-        [ "$gw" != "0.0.0.0" ] && continue
-        route del -net $dest netmask $mask dev $iface
+        ip route flush $dest/$mask dev $iface
+
+        # don't add new route if cable is disconnected
+        [ "$(cat /sys/class/net/$iface/carrier)" = "0" ] && continue
+
         route add -net $dest netmask $mask dev $iface metric $metric
     done
 }
