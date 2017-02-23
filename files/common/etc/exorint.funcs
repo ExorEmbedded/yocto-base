@@ -153,9 +153,9 @@ exorint_iface_metric_apply()
         mask=$(echo $line | cut -d ' ' -f 3)
         ip route flush $dest/$mask dev $iface
 
-        # don't add new route if cable is disconnected
-        [ "$(cat /sys/class/net/$iface/carrier)" = "0" ] && continue
+        # add new route only if link is up
+        [ "$(cat /sys/class/net/$iface/operstate)" = "up" ] || continue
 
-        route add -net $dest netmask $mask dev $iface metric $metric
+        ip route add $dest/$mask via $gw dev $iface metric $metric
     done
 }
