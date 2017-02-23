@@ -145,6 +145,9 @@ versionCompare() {
         m2=$( echo $2 | cut -d_ -f2 )
         b2=$( echo $2 | cut -d_ -f3 )
 
+	# Sanity check: unstable update steps should not be here
+	[ $m2 -eq 999 ] && return 0
+
         if [ $M1 -lt $M2 ]; then
                 return 255
         elif [ $M1 -gt $M2  ]; then
