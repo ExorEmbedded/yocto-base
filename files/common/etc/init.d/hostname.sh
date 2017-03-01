@@ -17,6 +17,7 @@ if [ ! -r /etc/hostname ]; then
     else
         hostname ${hn}
     fi
+    hostname > /etc/hostname
 else
     hostname -F /etc/hostname
 fi
