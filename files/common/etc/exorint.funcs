@@ -160,21 +160,22 @@ exorint_iface_metric_apply()
 exorint_fix_settings()
 {
     local tmpDir=$1
+    [ -z ${tmpDir} ] && tmpDir="/tmp"
     local nlines
     local ntrunc=30
     local resolvFile="/etc/resolv.conf"
+    local tmpFile="${tmpDir}/resolv.conf.tmp"
 
-    [ -z ${tmpDir} ] && tmpDir="/tmp"
     [ -e ${resolvFile} ] || return 0
 
     nlines=$(wc -l ${resolvFile} | cut -d ' ' -f 1)
     [ ${nlines} -lt ${ntrunc} ] && return 0
 
-    echo "*** WARNING ***: applying ${resolvFile} fix"
+    echo "*** WARNING ***: applying ${resolvFile} fix - tmpFile: ${tmpFile}"
 
     mkdir -p ${tmpDir}/$(dirname ${resolvFile})
-    echo "# WARNING: created by exorint_fix_settings()" > ${tmpDir}/${resolvFile}
-    cat ${resolvFile} | uniq | head -n ${ntrunc} >> ${tmpDir}/${resolvFile}
-    mv ${tmpDir}/${resolvFile} ${resolvFile} 
+    echo "# WARNING: created by exorint_fix_settings()" > ${tmpFile}
+    cat ${resolvFile} | uniq | head -n ${ntrunc} >> ${tmpFile}
+    mv ${tmpFile} ${resolvFile} 
     sync
 }
