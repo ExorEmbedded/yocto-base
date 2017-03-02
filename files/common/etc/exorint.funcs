@@ -156,3 +156,25 @@ exorint_iface_metric_apply()
         ip route add $dest/$mask via $gw dev $iface metric $metric
     done
 }
+
+exorint_fix_settings()
+{
+    local tmpDir=$1
+    local nlines
+    local ntrunc=30
+    local resolvFile="/etc/resolv.conf"
+
+    [ -z ${tmpDir} ] && tmpDir="/tmp"
+    [ -e ${resolvFile} ] || return 0
+
+    nlines=$(wc -l ${resolvFile} | cut -d ' ' -f 1)
+    [ ${nlines} -lt ${ntrunc} ] && return 0
+
+    echo "*** WARNING ***: applying ${resolvFile} fix"
+
+    mkdir -p ${tmpDir}/$(dirname ${resolvFile})
+    echo "# WARNING: created by exorint_fix_settings()" > ${tmpDir}/${resolvFile}
+    cat ${resolvFile} | uniq | head -n ${ntrunc} >> ${tmpDir}/${resolvFile}
+    mv ${tmpDir}/${resolvFile} ${resolvFile} 
+    sync
+}
