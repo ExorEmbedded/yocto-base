@@ -1,0 +1,17 @@
+#!/bin/bash
+
+dhcp_down()
+{
+    local pidfile="/var/run/udhcpc.$1.pid"
+    local pid
+
+    [ -e "${pidfile}" ] || return 0
+    pid=$(cat "${pidfile}")
+
+    echo "killing udhcpc pid: ${pid}"
+    kill ${pid}
+}
+
+dhcp_down $IFACE
+
+exit 0
