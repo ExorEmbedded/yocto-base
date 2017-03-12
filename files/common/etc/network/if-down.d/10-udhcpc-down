@@ -1,17 +1,19 @@
 #!/bin/bash
 
-dhcp_down()
+kill_pidfile()
 {
-    local pidfile="/var/run/udhcpc.$1.pid"
+    local pidfile="$1"
     local pid
 
     [ -e "${pidfile}" ] || return 0
     pid=$(cat "${pidfile}")
 
-    echo "killing udhcpc pid: ${pid}"
-    kill ${pid}
+    echo "killing pid: ${pid}"
+    kill ${pid} 2>/dev/null
+    rm "${pidfile}"
 }
 
-dhcp_down $IFACE
+kill_pidfile "/var/run/udhcpc-retry.$IFACE.pid"
+kill_pidfile "/var/run/udhcpc.$IFACE.pid"
 
 exit 0
