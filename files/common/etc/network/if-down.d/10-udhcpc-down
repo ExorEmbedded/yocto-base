@@ -10,7 +10,7 @@ kill_pidfile()
 
     echo "killing pid: ${pid}"
     kill ${pid} 2>/dev/null
-    rm "${pidfile}"
+    rm -f "${pidfile}"
 }
 
 kill_pidfile "/var/run/udhcpc-retry.$IFACE.pid"
