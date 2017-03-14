@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+# Usage: udhcpc-retry <iface> <wait (s)>
+
+# this is aligned with BusyBox .config
+UDHCPC_RETRIES=10
+
+[ -z "$1" ] && exit 1
+iface=$1
+
+[ -z "$2" ] && exit 1
+wait=$2
+
+grep -q "^iface $iface inet dhcp" /etc/network/interfaces || exit 2
+
+echo "Scheduling DHCP retry on $iface" | logger -t udhcpc.d
+sleep ${wait}
+
+grep -q "^iface $iface inet dhcp" /etc/network/interfaces || exit 2
+
+[ "$(cat /sys/class/net/$iface/carrier)" = "1" ] || exit 3
+
+echo "Retrying DHCP on $iface" | logger -t udhcpc.d
+udhcpc -n -t $UDHCPC_RETRIES -i $iface -p /var/run/udhcpc.$iface.pid

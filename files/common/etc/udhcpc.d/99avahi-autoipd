@@ -1,0 +1,23 @@
+#!/bin/bash
+
+[ -z "$1" ] && echo "Error: should be called from udhcpc" && exit 1
+
+AUTOIP_DHCP_RETRY="300"  # 5 min
+
+trap '' HUP
+
+case "$1" in
+
+	leasefail)
+		/usr/sbin/avahi-autoipd -wD $interface 2> /dev/null
+
+		# http://thread.gmane.org/gmane.linux.network.ifplugd.general/72
+		# "ifplugd waits until all data has been read from STDOUT before assuming that the app finished to run."
+		/sbin/udhcpc-retry $interface $AUTOIP_DHCP_RETRY > /dev/null 2> /dev/null < /dev/null &
+		PID=$!
+		echo ${PID} > /var/run/udhcpc-retry.$interface.pid
+		disown ${PID}
+		;;
+esac
+
+exit 0
