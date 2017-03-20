@@ -36,6 +36,13 @@ mount -t sysfs sysfs /sys
 . /etc/default/rcS
 . /etc/exorint.funcs
 
+if [ $ENABLE_FASTBOOT == "yes" ]
+then
+    echo "FastBoot enable --> ENABLE_ROOTFS_FSCK = $ENABLE_ROOTFS_FSCK";
+else
+    echo "FastBoot NOT enable --> ENABLE_ROOTFS_FSCK = $ENABLE_ROOTFS_FSCK";
+fi;
+
 # Trap CTRL-C &c only in this shell so we can interrupt subprocesses.
 trap ":" INT QUIT TSTP
 
@@ -124,15 +131,25 @@ if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
    fsck -a $DATAPARTITION
 fi
 
-mkdir $CONFIGOSTMPMNT
-mkdir $DATATMPMNT
-mount -o ro $CONFIGOSPARTITION $CONFIGOSTMPMNT
-mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
+if [ $ENABLE_FASTBOOT != "yes" ]
+then
+    mkdir $CONFIGOSTMPMNT
+    mount -o ro $CONFIGOSPARTITION $CONFIGOSTMPMNT
+    mkdir $DATATMPMNT
+    mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
+else
+    mkdir $DATATMPMNT
+    mount $DATAPARTITION $DATATMPMNT
+fi
 
 [ -e $CMDFILE ] && /etc/updateCmd.sh
 
+
 exorint_fix_settings /mnt
-exorint_data_quotaon $DATATMPMNT $QUOTA_DATA_RESERVED
+if [ $ENABLE_FASTBOOT != "yes" ]
+then
+    exorint_data_quotaon $DATATMPMNT $QUOTA_DATA_RESERVED
+fi
 
 # Move /home to data partition 
 [ ! -d "$DATATMPMNT/home" ] && cp -rp /home $DATATMPMNT
