@@ -63,14 +63,11 @@ exorint_ver_type()
     fi
 
     case $(exorint_ver_carrier) in
-        HSXX|HS07)
-            echo -n "HMI"
-            ;;
         PLCM|NA16)
             echo -n "ROUTER"
             ;;
-        *)  # generic/unknown device
-            echo -n "DEVICE"
+        *)
+            echo -n "HMI"
             ;;
     esac
 }
