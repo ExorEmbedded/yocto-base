@@ -166,8 +166,10 @@ PROGRESS_STATE=10
 echo $PROGRESS_STATE > $TMPDIR/progress_state 
 psplash-write "PROGRESS $PROGRESS_STATE"
 
-# Force bootcounter reset for blind devices (done by psplash for panels)
+# Blind device management
 if [ "$(exorint_ver_type)" = "ROUTER" ]; then
+    exorint_service_enable "router"
+    # bootcounter reset - done by psplash for panels
     psplash-write "QUIT"
 fi
 
