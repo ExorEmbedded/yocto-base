@@ -161,6 +161,23 @@ exorint_iface_metric_apply()
     done
 }
 
+exorint_service_enable()
+{
+    local name=$1
+    local svcFile="/usr/share/jmuconfig/services.json"
+    local paramsOffset=5
+    local initFile="/etc/rc5.d/.${name}.inited"  # preserved during migration
+
+    [ -z ${name} ] && return 1
+    [ -e ${initFile} ] && return 2
+    initParams=$(grep -A ${paramsOffset} "\"id\" :.*\"$(eval echo ${name})\"" ${svcFile} | \
+        grep '"init_params"' | cut -d ':' -f 2 | sed 's/ *"//' | sed 's/".//')
+    [ $? -eq 0 ] || return 3
+
+    update-rc.d ${name} ${initParams}
+    touch ${initFile}
+}
+
 exorint_fix_settings()
 {
     local tmpDir=$1
