@@ -139,17 +139,14 @@ then
     mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
 else
     mkdir $DATATMPMNT
-    mount $DATAPARTITION $DATATMPMNT
+    mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
 fi
 
 [ -e $CMDFILE ] && /etc/updateCmd.sh
 
 
 exorint_fix_settings /mnt
-if [ $ENABLE_FASTBOOT != "yes" ]
-then
-    exorint_data_quotaon $DATATMPMNT $QUOTA_DATA_RESERVED
-fi
+exorint_data_quotaon $DATATMPMNT $QUOTA_DATA_RESERVED
 
 # Move /home to data partition 
 [ ! -d "$DATATMPMNT/home" ] && cp -rp /home $DATATMPMNT
