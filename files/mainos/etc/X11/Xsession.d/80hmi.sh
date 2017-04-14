@@ -9,6 +9,13 @@ ln -s /proc/self/fd     			/dev/fd
 # Source defaults.
 . /etc/default/rcS
 
+
+if [ -e "/mnt/data/hmi/$FASTBOOT/run.sh" ]; then
+    app_to_launch=$(grep autostart /mnt/data/hmi/jmlauncher.xml | grep -c 1)
+else
+    app_to_launch=0;
+fi
+
 if [[ -e /mnt/data ]] ; then
 	# prepare foldef for jmlauncher
 	if [[ ! -e /mnt/data/hmi ]] ; then
@@ -26,15 +33,15 @@ if [[ -e /etc/nokiosk ]] ; then
 	rm /etc/nokiosk # next boot will reset to default kiosk mode
 	DISPLAY=:0 dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchDesktop
 else
-    if [ ! -z "$FASTBOOT" ] && [ -e "/mnt/data/hmi/$FASTBOOT/run.sh" ]; then
-	echo "HMI: KIOSK - FASTBOOT" | logger
-	cd /mnt/data/hmi/$FASTBOOT
-	./run.sh &
-	sleep 20;
+    if [ ! -z "$FASTBOOT" ] && [ -e "/mnt/data/hmi/$FASTBOOT/run.sh" ] && [ "$app_to_launch" -eq "1" ]; then
+        echo "HMI: KIOSK - FASTBOOT" | logger
+        cd /mnt/data/hmi/$FASTBOOT
+        ./run.sh &
+        sleep 20;
     else
-	echo "HMI: KIOSK" | logger
-	# starts the desktop
-	DISPLAY=:0 dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchHMI | logger
+        echo "HMI: KIOSK" | logger
+        # starts the desktop
+        DISPLAY=:0 dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchHMI | logger
     fi
 fi
 
