@@ -17,7 +17,8 @@ PRESERVEDPATH="$UPDATEPATH/preservedFiles"
 
 PACKAGEPATH="$ROOTTMPMNT/etc/migrations"
 
-mount -t tmpfs -o rw tmpfs $UPDATEPATH
+mount -t tmpfs -o rw tmpfs /var/volatile
+mkdir -p /var/volatile/tmp
 mkdir -p $PRESERVEDPATH
 
 rotation=0
@@ -222,7 +223,7 @@ if [ $? = 255 ]; then
         [ ! -e $FACTORYTMPMNT'shadow' ] && cp /etc/shadow $FACTORYTMPMNT
         ln -s -b $FACTORYTMPMNT'shadow' /etc/shadow
         sync
-        umount $UPDATEPATH
+        umount /var/volatile
         psplash-write "PROGRESS 100"
 
         # Restart psplash
@@ -298,7 +299,7 @@ ln -s -b $FACTORYTMPMNT'shadow' /etc/shadow
 
 psplash-write "PROGRESS 100"
 
-umount $UPDATEPATH
+umount /var/volatile
 
 # Restart psplash 
 psplash-write "QUIT"
