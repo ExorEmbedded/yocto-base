@@ -38,9 +38,14 @@ mount -t sysfs sysfs /sys
 
 if [ $ENABLE_FASTBOOT == "yes" ]
 then
-    echo "FastBoot enable --> ENABLE_ROOTFS_FSCK = $ENABLE_ROOTFS_FSCK";
+    echo "FastBoot enable";
+    if [ -x /etc/init.d/rcS_fastboot ]
+    then
+        /etc/init.d/rcS_fastboot
+        exit 0;
+    fi;
 else
-    echo "FastBoot NOT enable --> ENABLE_ROOTFS_FSCK = $ENABLE_ROOTFS_FSCK";
+    echo "FastBoot NOT enable";
 fi;
 
 # Trap CTRL-C &c only in this shell so we can interrupt subprocesses.
