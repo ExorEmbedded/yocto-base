@@ -200,3 +200,9 @@ exorint_fix_settings()
     mv ${tmpFile} ${resolvFile} 
     sync
 }
+
+exorint_uptime()
+{
+    echo "$(cat /proc/uptime | awk '{printf  $2}')"
+}
+
