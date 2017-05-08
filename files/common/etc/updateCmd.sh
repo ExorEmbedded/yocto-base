@@ -111,7 +111,9 @@ if ( stat -c %u "$CMD_FILE" | grep -vEq "0|1000|10000" ); then
    exit
 fi
 
-mount -t tmpfs tmpfs /var/run
+mount -t tmpfs tmpfs /run
+mount -t tmpfs tmpfs /var/lib
+mount -t tmpfs tmpfs /var/volatile
 
 [ "$part" == "user" ] && LOG_FILE="/var/run/$LOG_FILENAME"
 
