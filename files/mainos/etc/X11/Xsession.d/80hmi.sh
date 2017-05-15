@@ -14,12 +14,11 @@ JMLAUNCHER_FILE="/mnt/data/hmi/jmlauncher.xml"
 # Fast parse of jmlauncher.xml
 if [ ! -z "$FASTBOOT" ] && [ -e $JMLAUNCHER_FILE ]
 then
-    jmlauncher=$( cat $JMLAUNCHER_FILE );
-    apps_to_launch=$(grep autostart $jmlauncher | grep -c 1)
+    apps_to_launch=$(grep autostart $JMLAUNCHER_FILE | grep -c 1)
     if [ "$apps_to_launch" = "1" ]
     then
-        active_app=$(grep autostart $jmlauncher | grep 1);
-        app_to_launch_name=$(grep $active_app $jmlauncher -C 2 | grep installationFolder | awk -F '[<>]' '{print $3}');
+        active_app=$(grep autostart $JMLAUNCHER_FILE | grep 1);
+        app_to_launch_name=$(grep $active_app $JMLAUNCHER_FILE -C 2 | grep installationFolder | awk -F '[<>]' '{print $3}');
     fi
 else
     apps_to_launch=0;
