@@ -21,11 +21,10 @@ EDITMOTD=no
 cat /proc/cmdline | grep -qi fastboot=y
 if [ $? -eq 0 ]
 then
-#Warning!!! Indentation can cause parsing error.
-ENABLE_FASTBOOT=yes;
-FASTBOOT=qthmi;
+    ENABLE_FASTBOOT=yes;
+    FASTBOOT=qthmi;
 else
-ENABLE_FASTBOOT=no;
+    ENABLE_FASTBOOT=no;
 fi
 ENABLE_ROOTFS_FSCK=yes
 # Set FSCKFIX to "yes" if you want to add "-y" to the fsck at startup.
