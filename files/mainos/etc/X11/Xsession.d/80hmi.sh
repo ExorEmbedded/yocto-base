@@ -9,20 +9,17 @@ ln -s /proc/self/fd     			/dev/fd
 # Source defaults.
 . /etc/default/rcS
 
+JMLAUNCHER_FILE="/mnt/data/hmi/jmlauncher.xml"
+
 # Fast parse of jmlauncher.xml
-if [ ! -z "$FASTBOOT" ] && [ -e "/mnt/data/hmi/jmlauncher.xml" ]
+if [ ! -z "$FASTBOOT" ] && [ -e $JMLAUNCHER_FILE ]
 then
-    apps_to_launch=$(grep autostart /mnt/data/hmi/jmlauncher.xml | grep -c 1)
+    jmlauncher=$( cat $JMLAUNCHER_FILE );
+    apps_to_launch=$(grep autostart $jmlauncher | grep -c 1)
     if [ "$apps_to_launch" = "1" ]
     then
-        app_to_launch_name=$(grep autostart /mnt/data/hmi/jmlauncher.xml -C 2 | grep installationFolder | awk -F '[<>]' '{print $3}');
-        if [ "$app_to_launch_name" != "$FASTBOOT" ]
-        then
-            #Change FASTBOOT
-            sed -i "s/^\(FASTBOOT\s*=\s*\).*\$/\1$app_to_launch_name;/" /etc/default/rcS
-            #Faster then command: source /etc/default/rcS
-            FASTBOOT=$app_to_launch_name;
-        fi
+        active_app=$(grep autostart $jmlauncher | grep 1);
+        app_to_launch_name=$(grep $active_app $jmlauncher -C 2 | grep installationFolder | awk -F '[<>]' '{print $3}');
     fi
 else
     apps_to_launch=0;
@@ -48,7 +45,7 @@ else
     if [ ! -z "$FASTBOOT" ] && [ -e "/mnt/data/hmi/$FASTBOOT/run.sh" ] && [ "$apps_to_launch" -eq "1" ]; then
         echo "HMI: KIOSK - FASTBOOT" | logger
         cd /mnt/data/hmi/"$FASTBOOT" || return
-        ./run.sh &
+        ( ./run.sh -kiosk |& logger ) & # ticket 682
         sleep 20;
     else
         echo "HMI: KIOSK" | logger
