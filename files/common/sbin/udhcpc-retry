@@ -2,9 +2,6 @@
 #
 # Usage: udhcpc-retry <iface> <wait (s)>
 
-# this is aligned with BusyBox .config
-UDHCPC_RETRIES=10
-
 [ -z "$1" ] && exit 1
 iface=$1
 
@@ -12,6 +9,16 @@ iface=$1
 wait=$2
 
 grep -q "^iface $iface inet dhcp" /etc/network/interfaces || exit 2
+
+if [ -e /sys/class/net/$iface/bridge ]; then
+    # aligned with EPAD bridge - total 60s
+    UDHCPC_RETRIES=10
+    UDHCPC_TIMEOUT=6
+else
+    # aligned with BusyBox .config - total 30s
+    UDHCPC_RETRIES=10
+    UDHCPC_TIMEOUT=3
+fi
 
 echo "Scheduling DHCP retry on $iface" | logger -t udhcpc.d
 sleep ${wait}
@@ -21,4 +28,4 @@ grep -q "^iface $iface inet dhcp" /etc/network/interfaces || exit 2
 [ "$(cat /sys/class/net/$iface/carrier)" = "1" ] || exit 3
 
 echo "Retrying DHCP on $iface" | logger -t udhcpc.d
-udhcpc -n -t $UDHCPC_RETRIES -i $iface -p /var/run/udhcpc.$iface.pid
+udhcpc -n -t $UDHCPC_RETRIES -T $UDHCPC_TIMEOUT -i $iface -p /var/run/udhcpc.$iface.pid
