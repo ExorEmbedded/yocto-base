@@ -91,7 +91,17 @@ echo -ne "\ec"  > /dev/tty1
 export TMPDIR=/mnt/.psplash
 mkdir $TMPDIR
 mount -t tmpfs -o rw,size=40k /tmpfs $TMPDIR
-/usr/bin/psplash --angle $rotation &
+
+if [ ! -z "$FASTBOOT" ] && [ -x /usr/bin/setoverlay ]; then
+    #if we can use overlay, FB1 is used for psplash
+    export FBDEV=/dev/fb1;
+    #No close psplash when Xorg starts
+    psplash_opts='--no-console-switch'
+    #Create overlay!
+    /usr/bin/setoverlay;
+fi;
+
+/usr/bin/psplash --angle $rotation $psplash_opts &
 
 # Verify etc partition is properly populated (if no, copy original /etc to it)
 if [ ! -d '/etc/init.d' ]; then
