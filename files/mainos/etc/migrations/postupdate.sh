@@ -149,15 +149,8 @@ versionCompare() {
 	# Sanity check: unstable update steps should not be here
 	[ $m2 -eq 999 ] && return 0
 
-        if [ $M1 -lt $M2 ]; then
+        if [ $M1 -ne $M2 -o $m1 -ne $m2 ]; then
                 return 255
-        elif [ $M1 -gt $M2  ]; then
-                return 1
-        fi
-        if [ $m1 -lt $m2 ]; then
-                return 255
-        elif [ $m1 -gt $m2  ]; then
-                return 1
         fi
         if [ $b1 -lt $b2 ]; then
                 return 255
