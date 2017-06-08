@@ -123,6 +123,7 @@ exorint_iface_metric()
 {
     local iface=$1
     local metric=999
+    local type=$(cat /sys/class/net/$iface/type)
 
     if [ $iface = "br0" ]; then
        metric=50
@@ -130,6 +131,8 @@ exorint_iface_metric()
        metric=90
     elif echo $iface | grep -E -q "^eth[0-9]+"; then
        metric=$(( 100 + (${iface:3}*10) )) # ethX has metric 100+10x
+    elif [ $type -eq 512 ]; then  # ppp
+       metric=70
     elif iw dev | grep -q "Interface $iface"; then
        metric=80
     fi
