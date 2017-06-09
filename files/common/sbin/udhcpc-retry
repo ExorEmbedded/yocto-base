@@ -28,4 +28,5 @@ grep -q "^iface $iface inet dhcp" /etc/network/interfaces || exit 2
 [ "$(cat /sys/class/net/$iface/carrier)" = "1" ] || exit 3
 
 echo "Retrying DHCP on $iface" | logger -t udhcpc.d
+[ -e /var/run/udhcpc.$iface.pid ] && exit 4
 udhcpc -n -t $UDHCPC_RETRIES -T $UDHCPC_TIMEOUT -i $iface -p /var/run/udhcpc.$iface.pid
