@@ -95,10 +95,13 @@ mount -t tmpfs -o rw,size=40k /tmpfs $TMPDIR
 if [ ! -z "$FASTBOOT" ] && [ -x /usr/bin/setoverlay ]; then
     #if we can use overlay, FB1 is used for psplash
     export FBDEV=/dev/fb1;
-    #No close psplash when Xorg starts
-    psplash_opts='--no-console-switch'
     #Create overlay!
     /usr/bin/setoverlay;
+fi;
+
+if [ ! -z "$FASTBOOT" ] && [ -x /usr/bin/xsplash ]; then
+    #No close psplash when Xorg starts, is closed by xstarts
+    psplash_opts='--no-console-switch'
 fi;
 
 /usr/bin/psplash --angle $rotation $psplash_opts &
