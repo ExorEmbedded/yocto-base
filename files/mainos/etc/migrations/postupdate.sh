@@ -135,9 +135,10 @@ preserveInit() {
 }
 
 # Input: [version1] [version2] , eg 1_2_3 5_6_7
-# Returns: 255 if version1  version2
+# Returns: 255 if version1 <  version2 ( build number )
 #            0 if version1 == version2
-#            1 if version1 >  version2
+#            1 if version1 >  version2 ( build number )
+#            2 if version1 != version2 ( major/minor number )
 versionCompare() {
         M1=$( echo $1 | cut -d_ -f1 )
         m1=$( echo $1 | cut -d_ -f2 )
@@ -146,24 +147,16 @@ versionCompare() {
         m2=$( echo $2 | cut -d_ -f2 )
         b2=$( echo $2 | cut -d_ -f3 )
 
-	# Sanity check: unstable update steps should not be here
-	[ $m2 -eq 999 ] && return 0
+        if [ $M1 -ne $M2 -o $m1 -ne $m2  ]; then
+                return 2
+        fi
 
-        if [ $M1 -lt $M2 ]; then
-                return 255
-        elif [ $M1 -gt $M2  ]; then
-                return 1
-        fi
-        if [ $m1 -lt $m2 ]; then
-                return 255
-        elif [ $m1 -gt $m2  ]; then
-                return 1
-        fi
         if [ $b1 -lt $b2 ]; then
                 return 255
         elif [ $b1 -gt $b2  ]; then
                 return 1
         fi
+
         return 0
 }
 
@@ -216,10 +209,10 @@ DEST_VERSION="${maj}_${min}_${b}"
 
 psplash-write "MSG Please wait while updating os ... "
 
-# Check if we are going to do a downgrade. Migration and file preservation is not
-# supported for downgrades. Local files will be lost.
+# Check if we are going to do a downgrade or a major/minor update. Migration and file preservation is not
+# supported in these cases. Local files will be lost.
 versionCompare $DEST_VERSION $CURR_VERSION
-if [ $? = 255 ]; then
+if [ $? -gt 1 ]; then
         rm -rf /etc/*
         # Copy updated etc file
         cp -a $ROOTTMPMNT/etc/. /etc
@@ -248,7 +241,7 @@ done
 # Look for the first default files to preserve in previous update steps
 for v in $( echo "$VERSIONS" | tr " " "\n" | sort -r -n -t _ -k 1 -k 2 -k 3 ); do
         versionCompare $CURR_VERSION $v
-        if [ ! $? = 255 ]; then
+        if [ $? -lt 2 ]; then
 		((numSteps--)) 
 		[ -f $PACKAGEPATH/to_$v/default -a -z "$currDefFile" ] && currDefFile="$PACKAGEPATH/to_$v/default"
         fi
@@ -275,7 +268,7 @@ update_progress $step
 # migration steps required
 for v in $( echo "$VERSIONS" | tr " " "\n" | sort -n -t _ -k 1 -k 2 -k 3 ); do
         versionCompare $CURR_VERSION $v
-        # If greater version
+        # If greater build version
         if [ $? = 255 ]; then
                 echo "Apply migration from " $CURR_VERSION " to " $v
                 migrate $v
