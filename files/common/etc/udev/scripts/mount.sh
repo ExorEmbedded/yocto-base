@@ -10,7 +10,7 @@ UMOUNT="/bin/umount"
 FSCK="/sbin/fsck"
 
 # Device-specific options
-if echo $myname | grep -q usbmemory; then
+if echo $myname | grep -q '^usbmemory\|^sdcard'; then
 	MOUNT_ARGS="-o gid=admin,umask=002"  # writable by admin group
 fi
 
