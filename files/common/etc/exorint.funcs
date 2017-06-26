@@ -63,8 +63,11 @@ exorint_ver_type()
     fi
 
     case $(exorint_ver_carrier) in
-        PLCM|NA16)
+        PLCM)
             echo -n "ROUTER"
+            ;;
+        NA16)
+            echo -n "DEVICE"
             ;;
         *)
             echo -n "HMI"
