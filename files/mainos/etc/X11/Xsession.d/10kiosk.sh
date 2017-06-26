@@ -6,7 +6,7 @@ export TMPDIR=/mnt/.psplash/
 # Source defaults.
 . /etc/default/rcS
 
-if [ ! -z "$FASTBOOT" ] && [ -d "/mnt/data/hmi/$FASTBOOT/deploy" ] ; then
+if [ ! -z "$FASTBOOT" ] && [ -d "/mnt/data/hmi/$FASTBOOT/deploy" ] && [ ! -e $TMPDIR/taptap ] ; then
 	LD_LIBRARY_PATH=/mnt/data/hmi/$FASTBOOT/deploy EPAD &
 else
     # starts EPAD service

@@ -10,6 +10,12 @@ if [ -f $HOME/.profile ]; then
  . $HOME/.profile
 fi
 
+if [ -e $TMPDIR/taptap ] || [ -z "$FASTBOOT" ] ; then
+    /etc/init.d/ifplugd restart
+    /etc/init.d/dbus-1 restart
+    sleep 2;
+fi
+
 if [ -f /usr/bin/dbus-launch ]; then
   ## test for an existing bus daemon, just to be safe
   if test -z "$DBUS_SESSION_BUS_ADDRESS" ; then
