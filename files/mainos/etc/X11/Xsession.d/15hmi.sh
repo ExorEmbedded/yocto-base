@@ -17,7 +17,7 @@ fi;
 JMLAUNCHER_FILE="/mnt/data/hmi/jmlauncher.xml"
 
 # Fast parse of jmlauncher.xml
-if [ ! -z "$FASTBOOT" ] && [ -e $JMLAUNCHER_FILE ]
+if [ ! -z "$FASTBOOT" ] && [ -e $JMLAUNCHER_FILE ] && [ ! -e /etc/nokiosk ]
 then
     apps_to_launch=$(grep autostart $JMLAUNCHER_FILE | grep -c 1)
     if [ "$apps_to_launch" = "1" ]
