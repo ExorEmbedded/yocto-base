@@ -7,7 +7,8 @@ export TMPDIR=/mnt/.psplash/
 . /etc/default/rcS
 
 if [ ! -z "$FASTBOOT" ] && [ -d "/mnt/data/hmi/$FASTBOOT/deploy" ] && [ ! -e $TMPDIR/taptap ] ; then
-	LD_LIBRARY_PATH=/mnt/data/hmi/$FASTBOOT/deploy EPAD &
+    #Nothing to do
+    echo "start X11 - 10kiosk.sh" | logger
 else
     # starts EPAD service
     dbus-send --system --dest=com.exor.EPAD '/' com.exor.EPAD.ping

@@ -43,7 +43,8 @@ fi
 if [[ -e /etc/nokiosk ]] ; then
 	echo "HMI: NOKIOSK" | logger
 	# starts the HMI
-	rm /etc/nokiosk # next boot will reset to default kiosk mode
+	#rm /etc/nokiosk # next boot will reset to default kiosk mode
+	mv /etc/nokiosk /var/run/
 	DISPLAY=:0 dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchDesktop
 else
     if [ ! -z "$FASTBOOT" ] && [ -e "/mnt/data/hmi/$FASTBOOT/run.sh" ] && [ "$apps_to_launch" -eq "1" ]; then
