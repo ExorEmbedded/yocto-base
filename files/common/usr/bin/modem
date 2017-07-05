@@ -1,0 +1,202 @@
+#!/bin/bash
+#
+# Modem control script
+#
+# Supported models:
+#   - PLCM09 Plugin with Quectel 3G Modem
+# 
+# Prerequisites:
+#   - udev must be up and running (for setup of /dev/plugin* links)
+
+log()
+{
+    [ $VERBOSE -eq 0 ] && return 0
+    echo "$@"
+}
+
+die()
+{
+    echo "[ERROR] $@"
+    exit 1
+}
+
+cmd_help()
+{
+    echo "Usage: $(basename $0) [OPTS] CMD, where CMD can be:"
+    echo
+    echo "              start           start modem (if detected and enabled)"
+    echo "                              OPTS: -x    reset before start"
+    echo "              stop            stop modem (if detected and enabled)"
+    echo "              restart         restart modem"
+    echo "              on              power up only"
+    echo "              off             power off only"
+    echo "Other OPTS:"
+    echo "              -v              verbose mode"
+}
+
+# Print PLCM09 device name - empty string if none attached
+cmd_detect()
+{
+    for plugin in /dev/plugin*; do
+        if [ "`cat ${plugin}/hwcode`" = "13" ] && [ "`cat ${plugin}/installed`" = "1" ]; then
+            echo ${plugin}
+        fi
+    done
+}
+
+__poller()
+{
+    while true; do  # read may fail
+        cat $1 2>/dev/null | while read line
+        do
+            if echo -n $line | grep -q "^OK"; then
+                return 0
+            fi
+       done
+       [ $? -eq 0 ] && break
+       sleep 1
+    done
+}
+
+# $1: serial device
+cmd_wait()
+{
+    __poller $1 &
+    pid=$!
+    MAX_RETRIES=10
+
+    i=0
+    for i in `seq 1 $MAX_RETRIES`; do
+        log "Polling for OK"
+        printf "AT\r" > $1 2>/dev/null
+        if [ $? -ne 0 ]; then
+            sleep 1
+            continue
+        fi
+        sleep 1
+        if [ ! -e /proc/$pid ]; then
+            wait $pid
+            return 0
+        fi
+    done
+    
+    [ -e /proc/$pid ] && kill $pid
+    die "timeout!"
+}
+
+# $1: serial com device
+cmd_config()
+{
+    log "Configuring PLCM09 on serial $1"
+    printf "AT+IPR=3000000\r" > $1 2>/dev/null
+    # once baud rate is raised, we can't use serial to detect status
+    # modem resets and takes a while to become operational
+    sleep 8
+}
+
+# $1: plugin device
+cmd_on()
+{
+    local dev=$1
+    [ -z $1 ] && dev=$(cmd_detect)
+
+    log "Powering on ${dev}"
+    echo 1 > ${dev}/plcm09_power
+}
+
+# $1: plugin device
+cmd_off()
+{
+    local dev=$1
+    [ -z $1 ] && dev=$(cmd_detect)
+
+    log "Powering off ${dev}"
+    echo 0 > ${dev}/plcm09_power
+    sleep 2
+}
+
+cmd_start()
+{
+    if [ "$(/usr/bin/sys_params network/modem/enabled)" != "1" ]; then
+        echo "Modem not enabled in System Parameters"
+        return 0
+    fi
+
+    local dev=$(cmd_detect)
+    if [ -z $dev ]; then
+        echo "No PLCM09 present"
+        return 0
+    fi
+    log "Found PLCM09 on device: ${dev}"
+
+    # reset if requested
+    if [ ${RESET} -eq 1 ]; then
+        log "Resetting"
+        cmd_off ${dev}
+    fi
+
+    cmd_on ${dev}
+    [ $? -eq 0 ] || die "Failed PLCM09 activation!"
+
+    local i
+    local com
+
+    # initialize modem baud rate / 2 plugins for each serial device starting from 1
+    i=$(echo ${dev} | tr -d /dev/plugin/)
+    com=/dev/com$((i/2+2))
+
+    cmd_wait ${com}
+    cmd_config ${com}
+
+    log "Starting PPP"
+    /etc/init.d/ppp start
+}
+
+cmd_stop()
+{
+    local dev=$(cmd_detect)
+    if [ -z ${dev} ]; then
+        echo "No PLCM09 present"
+        return 0
+    fi
+
+    log "Stopping PPP"
+    /etc/init.d/ppp stop
+
+    cmd_off ${dev}
+}
+
+cmd_restart()
+{
+    cmd_stop
+    cmd_start
+}
+
+RESET=0
+VERBOSE=0
+
+while getopts ":hxv" opt; do
+      case ${opt} in
+        h)
+            cmd_help
+            ;;
+        x)
+            RESET=1
+            ;;
+        v)
+            VERBOSE=1
+            ;;
+        *)
+            echo "Invalid option: ${opt}!"
+            exit 1
+            ;;
+      esac
+done
+shift $((OPTIND-1))
+
+for arg in $@; do
+    cmd_$arg
+    [ $? -ne 0 ] && die "Command failed!"
+done
+
+exit 0
