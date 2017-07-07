@@ -18,7 +18,7 @@ ROOT_DIR=`echo $DIRNAME | sed -ne 's:/etc/.*::p'`
 # If rootfs is read-only, disable cache.
 #Commento questa riga, la cache la creiamo a tempo di compila
 #[ "$ROOTFS_READ_ONLY" = "yes" ] && VOLATILE_ENABLE_CACHE=no
-[ $ENABLE_FASTBOOT == "yes" ] && VOLATILE_ENABLE_CACHE=yes
+[ "$ENABLE_FASTBOOT" == "yes" ] && [ "$ETC_READ_ONLY" == "yes" ] && VOLATILE_ENABLE_CACHE=yes
 
 CFGDIR="${ROOT_DIR}/etc/default/volatiles"
 TMPROOT="${ROOT_DIR}/var/volatile/tmp"
