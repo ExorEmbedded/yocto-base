@@ -15,8 +15,6 @@ UTC=yes
 VERBOSE=no
 # Set EDITMOTD to "no" if you don't want /etc/motd to be edited automatically
 EDITMOTD=no
-# Whether to fsck root on boot
-#ENABLE_ROOTFS_FSCK=yes
 # Verify and apply fastboot options
 cat /proc/cmdline | grep -qi fastboot=y
 if [ $? -eq 0 ]
