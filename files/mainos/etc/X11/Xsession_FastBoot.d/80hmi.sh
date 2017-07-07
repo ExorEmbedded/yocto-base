@@ -9,6 +9,8 @@ ln -s /proc/self/fd/0   			/dev/stdin
 ln -s /proc/self/fd     			/dev/fd
 ln -s /sys/bus/spi/devices/spi1.0/eeprom 	/dev/fram
 
+# Source defaults.
+. /etc/default/rcS
 
 if [[ -e /mnt/data ]] ; then
 	# prepare foldef for jmlauncher
@@ -28,8 +30,14 @@ if [[ -e /etc/nokiosk ]] ; then
 	rm /etc/nokiosk # next boot will reset to default kiosk mode
 	DISPLAY=:0 dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchDesktop
 else
-	echo "HMI: KIOSK" | logger
-	# starts the desktop
-	DISPLAY=:0 dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchHMI | logger
+	if [ ! -z "$FASTBOOT" ] ; then
+		echo "HMI: KIOSK - FASTBOOT" | logger
+		cd /mnt/data/hmi/$FASTBOOT
+		./run.sh &
+		sleep 20;
+	else
+		echo "HMI: KIOSK" | logger
+		# starts the desktop
+		DISPLAY=:0 dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchHMI | logger
+	fi
 fi
-
