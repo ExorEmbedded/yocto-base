@@ -16,7 +16,19 @@ VERBOSE=no
 # Set EDITMOTD to "no" if you don't want /etc/motd to be edited automatically
 EDITMOTD=no
 # Whether to fsck root on boot
-ENABLE_ROOTFS_FSCK=yes
+#ENABLE_ROOTFS_FSCK=yes
+# Verify and apply fastboot options
+cat /proc/cmdline | grep -qi fastboot=y
+if [ $? -eq 0 ]
+then
+    ENABLE_FASTBOOT=yes;
+    ENABLE_ROOTFS_FSCK=no;
+    FASTBOOT=qthmi;
+else
+    ENABLE_FASTBOOT=no;
+    ENABLE_ROOTFS_FSCK=yes;
+fi 
+
 # Set FSCKFIX to "yes" if you want to add "-y" to the fsck at startup.
 FSCKFIX=yes
 # Set TICKADJ to the correct tick value for this specific machine
