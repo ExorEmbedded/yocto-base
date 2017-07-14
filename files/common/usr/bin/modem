@@ -8,6 +8,8 @@
 # Prerequisites:
 #   - udev must be up and running (for setup of /dev/plugin* links)
 
+MODEM_BAUD="3000000"
+
 log()
 {
     [ $VERBOSE -eq 0 ] && return 0
@@ -114,7 +116,15 @@ cmd_wait()
 cmd_config()
 {
     log "Configuring PLCM09 on serial $1"
-    printf "AT+IPR=3000000\r" > $1 2>/dev/null
+
+    local pin="`/usr/bin/sys_params network/mobile/pin 2>/dev/null`"
+    if [ "${pin}" != "" ]; then 
+        printf "AT+CPIN=${pin}\r" > $1 2>/dev/null
+        sleep 1
+    fi
+
+    printf "AT+IPR=${MODEM_BAUD}\r" > $1 2>/dev/null
+
     # once baud rate is raised, we can't use serial to detect status
     # modem resets and takes a while to become operational
     sleep 8
