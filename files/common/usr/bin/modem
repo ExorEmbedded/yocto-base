@@ -14,9 +14,14 @@ log()
     echo "$@"
 }
 
+err()
+{
+    echo >&2 "[ERROR] $@"
+}
+
 die()
 {
-    echo "[ERROR] $@"
+    err "$@"
     exit 1
 }
 
@@ -28,20 +33,41 @@ cmd_help()
     echo "                              OPTS: -x    reset before start"
     echo "              stop            stop modem (if detected and enabled)"
     echo "              restart         restart modem"
+    echo "              status          get modem status"
+    echo 
+    echo "              dev             get device name (empty string if not detected)"
+    echo "              com             get serial device name (empty string if not detected)"
     echo "              on              power up only"
     echo "              off             power off only"
+    echo
     echo "Other OPTS:"
     echo "              -v              verbose mode"
 }
 
-# Print PLCM09 device name - empty string if none attached
-cmd_detect()
+cmd_dev()
 {
     for plugin in /dev/plugin*; do
-        if [ "`cat ${plugin}/hwcode`" = "13" ] && [ "`cat ${plugin}/installed`" = "1" ]; then
+        if [ "`cat ${plugin}/hwcode 2> /dev/null`" = "13" ] && [ "`cat ${plugin}/installed 2>/dev/null`" = "1" ]; then
             echo ${plugin}
+            return 0
         fi
     done
+
+    die "No PLCM09 device found!"
+}
+
+cmd_com()
+{
+    local dev=$1
+    local i
+    [ -z $1 ] && dev=$(cmd_dev)
+
+    [ $? -ne 0 ] && return 1
+    # initialize modem baud rate / 2 plugins for each serial device starting from 1
+    i=$(echo ${dev} | tr -d /dev/plugin/)
+    echo /dev/com$((i/2+2))
+
+    return 0
 }
 
 __poller()
@@ -98,7 +124,7 @@ cmd_config()
 cmd_on()
 {
     local dev=$1
-    [ -z $1 ] && dev=$(cmd_detect)
+    [ -z $1 ] && dev=$(cmd_dev)
 
     log "Powering on ${dev}"
     echo 1 > ${dev}/plcm09_power
@@ -108,7 +134,7 @@ cmd_on()
 cmd_off()
 {
     local dev=$1
-    [ -z $1 ] && dev=$(cmd_detect)
+    [ -z $1 ] && dev=$(cmd_dev)
 
     log "Powering off ${dev}"
     echo 0 > ${dev}/plcm09_power
@@ -117,12 +143,12 @@ cmd_off()
 
 cmd_start()
 {
-    if [ "$(/usr/bin/sys_params network/modem/enabled)" != "1" ]; then
-        echo "Modem not enabled in System Parameters"
+    if [ "$(/usr/bin/sys_params network/mobile/enabled)" != "true" ]; then
+        echo "Mobile not enabled in System Parameters"
         return 0
     fi
 
-    local dev=$(cmd_detect)
+    local dev=$(cmd_dev)
     if [ -z $dev ]; then
         echo "No PLCM09 present"
         return 0
@@ -138,12 +164,10 @@ cmd_start()
     cmd_on ${dev}
     [ $? -eq 0 ] || die "Failed PLCM09 activation!"
 
-    local i
     local com
 
-    # initialize modem baud rate / 2 plugins for each serial device starting from 1
-    i=$(echo ${dev} | tr -d /dev/plugin/)
-    com=/dev/com$((i/2+2))
+    com=$(cmd_com)
+    [ -e ${com} ] || die "Missing com device: ${com}!"
 
     cmd_wait ${com}
     cmd_config ${com}
@@ -154,7 +178,7 @@ cmd_start()
 
 cmd_stop()
 {
-    local dev=$(cmd_detect)
+    local dev=$(cmd_dev)
     if [ -z ${dev} ]; then
         echo "No PLCM09 present"
         return 0
@@ -170,6 +194,11 @@ cmd_restart()
 {
     cmd_stop
     cmd_start
+}
+
+cmd_status()
+{
+   pidof pppd >/dev/null
 }
 
 RESET=0
@@ -196,7 +225,11 @@ shift $((OPTIND-1))
 
 for arg in $@; do
     cmd_$arg
-    [ $? -ne 0 ] && die "Command failed!"
+    if [ $? -ne 0 ]; then
+        err "Command failed!"
+        cmd_help
+        exit 1
+    fi
 done
 
 exit 0
