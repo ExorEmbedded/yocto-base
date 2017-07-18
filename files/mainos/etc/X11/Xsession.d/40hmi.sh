@@ -9,11 +9,6 @@ ln -s /proc/self/fd     			/dev/fd
 # Source defaults.
 . /etc/default/rcS
 
-#Run a simple splash in x for reduce black screen --> #722
-if [ ! -z "$FASTBOOT" ] && [ -x /usr/bin/xsplash ]; then
-    DISPLAY=:0 /usr/bin/xsplash &
-fi;
-
 JMLAUNCHER_FILE="/mnt/data/hmi/jmlauncher.xml"
 
 # Fast parse of jmlauncher.xml
