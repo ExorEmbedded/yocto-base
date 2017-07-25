@@ -188,5 +188,11 @@ if [ "$(exorint_ver_type)" = "ROUTER" ]; then
     psplash-write "QUIT"
 fi
 
+# Blind device management
+if [ "$(exorint_ver_type)" = "DEVICE" ]; then
+    # bootcounter reset - done by psplash for panels
+    psplash-write "QUIT"
+fi
+
 # Call all parts in order
 exec /etc/init.d/rc S
