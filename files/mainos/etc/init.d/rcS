@@ -36,6 +36,18 @@ mount -t sysfs sysfs /sys
 . /etc/default/rcS
 . /etc/exorint.funcs
 
+if [ $ENABLE_FASTBOOT == "yes" ]
+then
+    echo "FastBoot enable";
+    if [ -x /etc/init.d/rcS_fastboot ]
+    then
+        /etc/init.d/rcS_fastboot
+        exit 0;
+    fi;
+else
+    echo "FastBoot NOT enable";
+fi;
+
 # Trap CTRL-C &c only in this shell so we can interrupt subprocesses.
 trap ":" INT QUIT TSTP
 
@@ -79,7 +91,20 @@ echo -ne "\ec"  > /dev/tty1
 export TMPDIR=/mnt/.psplash
 mkdir $TMPDIR
 mount -t tmpfs -o rw,size=40k /tmpfs $TMPDIR
-/usr/bin/psplash --angle $rotation &
+
+if [ ! -z "$FASTBOOT" ] && [ -x /usr/bin/setoverlay ]; then
+    #if we can use overlay, FB1 is used for psplash
+    export FBDEV=/dev/fb1;
+    #Create overlay!
+    /usr/bin/setoverlay;
+fi;
+
+if [ ! -z "$FASTBOOT" ] && [ -x /usr/bin/xsplash ]; then
+    #No close psplash when Xorg starts, is closed by xstarts
+    psplash_opts='--no-console-switch'
+fi;
+
+/usr/bin/psplash --angle $rotation $psplash_opts &
 
 # Verify etc partition is properly populated (if no, copy original /etc to it)
 if [ ! -d '/etc/init.d' ]; then
@@ -124,12 +149,19 @@ if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
    fsck -a $DATAPARTITION
 fi
 
-mkdir $CONFIGOSTMPMNT
-mkdir $DATATMPMNT
-mount -o ro $CONFIGOSPARTITION $CONFIGOSTMPMNT
-mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
+if [ $ENABLE_FASTBOOT != "yes" ]
+then
+    mkdir $CONFIGOSTMPMNT
+    mount -o ro $CONFIGOSPARTITION $CONFIGOSTMPMNT
+    mkdir $DATATMPMNT
+    mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
+else
+    mkdir $DATATMPMNT
+    mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
+fi
 
 [ -e $CMDFILE ] && /etc/updateCmd.sh
+
 
 exorint_fix_settings /mnt
 exorint_data_quotaon $DATATMPMNT $QUOTA_DATA_RESERVED
@@ -152,6 +184,12 @@ psplash-write "PROGRESS $PROGRESS_STATE"
 # Blind device management
 if [ "$(exorint_ver_type)" = "ROUTER" ]; then
     exorint_service_enable "router"
+    # bootcounter reset - done by psplash for panels
+    psplash-write "QUIT"
+fi
+
+# Blind device management
+if [ "$(exorint_ver_type)" = "DEVICE" ]; then
     # bootcounter reset - done by psplash for panels
     psplash-write "QUIT"
 fi

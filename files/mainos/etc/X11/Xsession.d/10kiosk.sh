@@ -3,16 +3,22 @@
 echo "HMI: booting!" | logger
 
 export TMPDIR=/mnt/.psplash/
+# Source defaults.
+. /etc/default/rcS
 
-# starts EPAD service
-dbus-send --system --dest=com.exor.EPAD '/' com.exor.EPAD.ping
+if [ ! -z "$FASTBOOT" ] && [ -d "/mnt/data/hmi/$FASTBOOT/deploy" ] && [ ! -e $TMPDIR/taptap ] ; then
+    #Nothing to do
+    echo "start X11 - 10kiosk.sh" | logger
+else
+    # starts EPAD service
+    dbus-send --system --dest=com.exor.EPAD '/' com.exor.EPAD.ping
+fi
 
 if [[ -e $TMPDIR/taptap ]] ; then
 	while ( (cat $TMPDIR/taptap | grep wait) > /dev/null 2>&1 ) ; do
 		echo "HMI: waiting tapttap" | logger
 		ping -c 1 -i 0.3 127.0.0.1 > /dev/null 2>&1;
 	done
-
 
 	if [[ -e $TMPDIR/taptap ]] ; then
 		echo "HMI: tap tap content: $(cat $TMPDIR/taptap)" | logger
@@ -30,4 +36,8 @@ if [[ -e $TMPDIR/taptap ]] ; then
 	fi 
 fi
 
+#Run a simple splash in x for reduce black screen --> #722
+if [ ! -z "$FASTBOOT" ] && [ -x /usr/bin/xsplash ]; then
+    DISPLAY=:0 /usr/bin/xsplash &
+fi;
 

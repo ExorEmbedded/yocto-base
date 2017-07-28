@@ -15,7 +15,15 @@ UTC=yes
 VERBOSE=no
 # Set EDITMOTD to "no" if you don't want /etc/motd to be edited automatically
 EDITMOTD=no
-# Whether to fsck root on boot
+# Verify and apply fastboot options
+cat /proc/cmdline | grep -qi fastboot=y
+if [ $? -eq 0 ]
+then
+    ENABLE_FASTBOOT=yes;
+    FASTBOOT=qthmi;
+else
+    ENABLE_FASTBOOT=no;
+fi
 ENABLE_ROOTFS_FSCK=yes
 # Set FSCKFIX to "yes" if you want to add "-y" to the fsck at startup.
 FSCKFIX=yes
@@ -27,6 +35,7 @@ VOLATILE_ENABLE_CACHE=yes
 # Setting ROOTFS_READ_ONLY to yes and rebooting will give you a read-only rootfs.
 # Normally you should not change this value.
 ROOTFS_READ_ONLY=yes
+ETC_READ_ONLY=no
 # Blocks in data partition reserved for internal system usage (e.g. nginx).
 # A hard quota for data users will be imposed on the remaining space.
 QUOTA_DATA_RESERVED="50000"
