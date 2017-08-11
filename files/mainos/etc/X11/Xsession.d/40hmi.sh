@@ -42,7 +42,7 @@ if [[ -e /etc/nokiosk ]] ; then
 	mv /etc/nokiosk /var/run/
 	DISPLAY=:0 dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchDesktop
 else
-    if [ ! -z "$FASTBOOT" ] && [ -e "/mnt/data/hmi/$FASTBOOT/run.sh" ] && [ "$apps_to_launch" -eq "1" ]; then
+    if [ ! -z "$FASTBOOT" ] && [ -e "/mnt/data/hmi/$FASTBOOT/run.sh" ] && [ "$apps_to_launch" -eq "1" ] && [ "$FASTBOOT" -eq "$app_to_launch_name" ]; then
         echo "HMI: KIOSK - FASTBOOT" | logger
         cd /mnt/data/hmi/"$FASTBOOT" || return
         ( ./run.sh -kiosk |& logger ) & # ticket 682
