@@ -1,4 +1,4 @@
-#!/bin/sh
+    #!/bin/sh
 #
 # rcS		Call all S??* scripts in /etc/rcS.d in
 #		numerical/alphabetical order.
@@ -122,12 +122,12 @@ fi
 if [ "$(exorint_ver_type)" = "DEVICE" ]; then
     # bootcounter reset - done by psplash for panels
     psplash-write "QUIT"
-
-    #Blink fault led to know if we are in configos
-    echo timer > /sys/class/leds/us01\:fault\:usr0/trigger
-    echo 100 > /sys/class/leds/us01\:fault\:usr0/delay_on
-    echo 1000 > /sys/class/leds/us01\:fault\:usr0/delay_off
 fi
+
+#Blink fault led to know if we are in configos
+echo timer > /sys/class/leds/us01\:fault\:usr0/trigger
+echo 100 > /sys/class/leds/us01\:fault\:usr0/delay_on
+echo 1000 > /sys/class/leds/us01\:fault\:usr0/delay_off
 
 # Call all parts in order
 exec /etc/init.d/rc S
