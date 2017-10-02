@@ -103,6 +103,39 @@ exorint_hostname()
     return 0
 }
 
+# Gets SWFlagArea bit value. Returns 1 and a 0 value on error or area not set (invalid checksum)
+# $1 bit offset
+exorint_swflagarea_bit()
+{
+    if [ -z "$1" ];then
+        echo 0
+        return 1;
+    fi
+
+    local swFlagArea="$(dd if=/sys/bus/i2c/devices/0-0054/eeprom skip=248 bs=1 count=7 2>/dev/null | hexdump -e '16/1 "%02x "')"
+    local swFlagArea_chksum="$(dd if=/sys/bus/i2c/devices/0-0054/eeprom skip=255 bs=1 count=1 2>/dev/null | hexdump -e '16/1 "%02x "')"
+
+    # 1 - 0xAA
+    local chksum="-169"
+
+    for byte in $swFlagArea; do
+        chksum=$(( $chksum + 0x${byte} ))
+    done
+
+    chksum=$(( $chksum & 255 ))
+
+    if [ "$chksum" -ne $(( 0x${swFlagArea_chksum} )) ]; then
+       echo 0
+       return 1
+    fi
+
+    local rbyte=$(( ${1}/8 +1))
+    local roffset=$(( 1 << ( ${1} & 7) ))
+
+    echo $(( $( echo ${swFlagArea} | cut -d' ' -f ${rbyte}) & ${roffset} ))
+    return 0
+}
+
 # Activation of quota on data partition
 # $1 data partitin device
 # $2 reserved space
