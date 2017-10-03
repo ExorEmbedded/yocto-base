@@ -275,13 +275,25 @@ cmd_config()
 
     # Since AT+CPINR is unimplemented..
     # https://developer.gemalto.com/tutorial/how-query-pin-counter-ehsx
-    out="$(send_expect ${dev} "AT+CSIM=10,\"0020000100\"" "^\+CSIM: 4" | tr -d \")"
-    local left_hex=$(echo "${out}" | cut -s -d',' -f 2 | tr -d \" | tail -c 2)
-    [ "${left_hex}" != "" ] && epad_set_volatile "services/mobile/pin_left" "$((16#${left_hex}))"
+    out="$(send_expect ${dev} "AT+CRSM=242" "^\+CRSM:" | tr -d \")"
+    local crsm=$(echo "${out}" | cut -s -d',' -f 3)
+    local sim_type=${crsm:0:2}
+    if [ "${sim_type}" = "62" ]; then
+        log "Detected USIM"
 
-    out="$(send_expect ${dev} "AT+CSIM=10,\"002C000100\"" "^\+CSIM: 4" | tr -d \")"
-    local left_hex=$(echo "${out}" | cut -s -d',' -f 2 | tr -d \" | tail -c 2)
-    [ "${left_hex}" != "" ] && epad_set_volatile "services/mobile/puk_left" "$((16#${left_hex}))"
+        out="$(send_expect ${dev} "AT+CSIM=10,\"0020000100\"" "^\+CSIM: 4" | tr -d \")"
+        local left_hex=$(echo "${out}" | cut -s -d',' -f 2 | tr -d \" | tail -c 2)
+        [ "${left_hex}" != "" ] && epad_set_volatile "services/mobile/pin_left" "$((16#${left_hex}))"
+
+        out="$(send_expect ${dev} "AT+CSIM=10,\"002C000100\"" "^\+CSIM: 4" | tr -d \")"
+        local left_hex=$(echo "${out}" | cut -s -d',' -f 2 | tr -d \" | tail -c 2)
+        [ "${left_hex}" != "" ] && epad_set_volatile "services/mobile/puk_left" "$((16#${left_hex}))"
+    else
+        log "Detected SIM"
+        # Note: assume initialized
+        epad_set_volatile "services/mobile/pin_left" "$((16#${crsm:37:1}))"
+        epad_set_volatile "services/mobile/puk_left" "$((16#${crsm:39:1}))"
+    fi
 
     out=$(send_expect "${dev}" "AT+CPIN?" "^\+CPIN:")
     if [ "${out}" = "+CPIN: SIM PIN" ]; then
