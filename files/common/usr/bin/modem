@@ -26,7 +26,7 @@ MODEM_IFACE="ppp0"
 MODEM_STARTING=0
 
 MODEMOUT="/tmp/modem.out"
-MAX_RETRIES=10
+MAX_RETRIES=30
 MODEM_KILLING=0
 
 ERR_SUCCESS=0
@@ -278,22 +278,28 @@ cmd_config()
     out="$(send_expect ${dev} "AT+CRSM=242" "^\+CRSM:" | tr -d \")"
     local crsm=$(echo "${out}" | cut -s -d',' -f 3)
     local sim_type=${crsm:0:2}
+    local pin_left
+    local puk_left
     if [ "${sim_type}" = "62" ]; then
         log "Detected USIM"
 
         out="$(send_expect ${dev} "AT+CSIM=10,\"0020000100\"" "^\+CSIM: 4" | tr -d \")"
         local left_hex=$(echo "${out}" | cut -s -d',' -f 2 | tr -d \" | tail -c 2)
-        [ "${left_hex}" != "" ] && epad_set_volatile "services/mobile/pin_left" "$((16#${left_hex}))"
+        pin_left="$((16#${left_hex}))"
 
         out="$(send_expect ${dev} "AT+CSIM=10,\"002C000100\"" "^\+CSIM: 4" | tr -d \")"
         local left_hex=$(echo "${out}" | cut -s -d',' -f 2 | tr -d \" | tail -c 2)
-        [ "${left_hex}" != "" ] && epad_set_volatile "services/mobile/puk_left" "$((16#${left_hex}))"
+        puk_left="$((16#${left_hex}))"
     else
         log "Detected SIM"
-        # Note: assume initialized
-        epad_set_volatile "services/mobile/pin_left" "$((16#${crsm:37:1}))"
+        # Note: assume SIM is initialized
+        pin_left="$((16#${crsm:37:1}))"
+        puk_left="$((16#${crsm:39:1}))"
         epad_set_volatile "services/mobile/puk_left" "$((16#${crsm:39:1}))"
     fi
+    # set initial counters
+    epad_set_volatile "services/mobile/pin_left" "${pin_left}"
+    epad_set_volatile "services/mobile/puk_left" "${puk_left}"
 
     out=$(send_expect "${dev}" "AT+CPIN?" "^\+CPIN:")
     if [ "${out}" = "+CPIN: SIM PIN" ]; then
@@ -305,9 +311,16 @@ cmd_config()
             # remember PIN only if it was correct
             if [ $? -ne 0 ]; then
                 /usr/bin/sys_params -w services/mobile/pin ""
-                notify_error ${ERR_PINERROR}
+                # decrease counter avoiding extra read
+                epad_set_volatile "services/mobile/pin_left" "$((pin_left-1))"
+                if [ "$((pin_left-1))" = "0" ]; then
+                    notify_error ${ERR_PUKREQUIRED}
+                else
+                    notify_error ${ERR_PINERROR}
+                fi
             fi 
-            epad_set_volatile "services/mobile/pin_left" ""
+            # reset counters avoiding extra read
+            epad_set_volatile "services/mobile/pin_left" "3"
         fi
     elif [ "${out}" = "+CPIN: SIM PUK" ]; then
         local puk="`/usr/bin/sys_params services/mobile/puk 2>/dev/null`"
@@ -321,13 +334,17 @@ cmd_config()
             if [ $? -ne 0 ]; then
                 /usr/bin/sys_params -w services/mobile/puk ""
                 /usr/bin/sys_params -w services/mobile/pin ""
+                # decrease counter avoiding extra read
+                epad_set_volatile "services/mobile/puk_left" "$((puk_left-1))"
                 notify_error ${ERR_PUKERROR}
             fi
+            # reset counters avoiding extra read
+            epad_set_volatile "services/mobile/pin_left" "3"
+            epad_set_volatile "services/mobile/puk_left" "10"
             /usr/bin/sys_params -w services/mobile/puk ""
-            epad_set_volatile "services/mobile/pin_left" ""
-            epad_set_volatile "services/mobile/puk_left" ""
         fi
     fi
+
     # give some time to obtain network info
     sleep 5
 
@@ -469,6 +486,7 @@ cmd_stop()
 
     info "Stopping PPP"
     /etc/init.d/ppp stop
+    sleep 1
 
     cmd_off ${dev}
 }
