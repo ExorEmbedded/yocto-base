@@ -206,39 +206,41 @@ mkdir -p $VOLATILELOGDIR
 
 # Move log files to a persistent fs
 if [ "$1" = "enable" ]; then
-        # Check if it's already in persistence mode
-        [ "$logP" = "y" ] && exit 0
-        echo "y" > $CFGDIR/pLogFlag
-        mkdir -p $PERSISTENTLOGDIR
-	$SYSLOG stop
-        cp -rp $VOLATILELOGDIR/* $PERSISTENTLOGDIR
-	rm -rf $VOLATILELOGDIR/*
-	mount -o bind $PERSISTENTLOGDIR $VOLATILELOGDIR
-        $SYSLOG start
-	exit 0
+    # Check if it's already in persistence mode
+    [ "$logP" = "y" ] && exit 0
+    echo "y" > $CFGDIR/pLogFlag
+    mkdir -p $PERSISTENTLOGDIR
+    $SYSLOG stop
+    cp -rp $VOLATILELOGDIR/* $PERSISTENTLOGDIR
+    rm -rf $VOLATILELOGDIR/*
+    mount -o bind $PERSISTENTLOGDIR $VOLATILELOGDIR
+    $SYSLOG start
+    exit 0
 fi
 
 # Restore default log files location
 if [ "$1" = "disable" ]; then
-        # Check if persistence mode is really enabled
-        [ ! "$logP" = "y" ] && exit 0
-        echo "n" > $CFGDIR/pLogFlag
-        $SYSLOG	stop
-	umount -l $VOLATILELOGDIR
-        # Tmpfs size is limited in /var/volatile. Copy messages logs first to make sure to save them
-        for mlog in $( find $PERSISTENTLOGDIR/messages* ); do
-                mv $mlog $VOLATILELOGDIR/
-        done
-        cp -rp $PERSISTENTLOGDIR/* $VOLATILELOGDIR
-	$SYSLOG start
-        rm -rf $PERSISTENTLOGDIR
-	exit 0
+    # Check if persistence mode is really enabled
+    [ ! "$logP" = "y" ] && exit 0
+    echo "n" > $CFGDIR/pLogFlag
+    $SYSLOG	stop
+    umount -l $VOLATILELOGDIR
+    # Tmpfs size is limited in /var/volatile. Copy messages logs first to make sure to save them
+    for mlog in $( find $PERSISTENTLOGDIR/messages* ); do
+        mv $mlog $VOLATILELOGDIR/
+    done
+    cp -rp $PERSISTENTLOGDIR/* $VOLATILELOGDIR
+    $SYSLOG start
+    rm -rf $PERSISTENTLOGDIR
+    exit 0
 fi
 
 # At boot time, mount persistent log location if persistence is enabled
 if [ "$logP" = "y" ]; then
-        mkdir -p $PERSISTENTLOGDIR
-        mount -o bind $PERSISTENTLOGDIR $VOLATILELOGDIR
+    fsck -a /mnt/data/
+    mount -o remount,rw /mnt/data/
+    mkdir -p $PERSISTENTLOGDIR
+    mount -o bind $PERSISTENTLOGDIR $VOLATILELOGDIR
 fi
 
 [ "${VERBOSE}" != "no" ] && echo "Populating volatile Filesystems."
