@@ -24,6 +24,19 @@ else
     apps_to_launch=0;
 fi
 
+if [ -e $TMPDIR/taptap ] || [ -z "$FASTBOOT" ] || [ $apps_to_launch -eq 0 ];
+then
+    // This simulate triple steps fast boot --> Superfast
+    . /etc/exorint.funcs
+    carrier=$(exorint_ver_carrier)
+    if [ "$carrier" == "WU16" ]
+    then
+        /etc/init.d/ifplugd start
+        /etc/init.d/dbus-1 start
+        sleep 1;
+    fi;
+fi
+
 if [[ -e /mnt/data ]] ; then
 	# prepare foldef for jmlauncher
 	if [[ ! -e /mnt/data/hmi ]] ; then
