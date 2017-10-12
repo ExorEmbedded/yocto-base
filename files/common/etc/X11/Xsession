@@ -11,19 +11,6 @@ if [ -f $HOME/.profile ]; then
  . $HOME/.profile
 fi
 
-if [ -e $TMPDIR/taptap ] || [ -z "$FASTBOOT" ] || [ ! -e "/mnt/data/hmi/$FASTBOOT/run.sh" ];
-then
-    // This simulate triple steps fast boot --> Superfast
-    . /etc/exorint.funcs
-    carrier=$(exorint_ver_carrier)
-    if [ "$carrier" == "WU16" ]
-    then
-        /etc/init.d/ifplugd start
-        /etc/init.d/dbus-1 start
-        sleep 1;
-    fi;
-fi
-
 if [ -f /usr/bin/dbus-launch ]; then
   ## test for an existing bus daemon, just to be safe
   if test -z "$DBUS_SESSION_BUS_ADDRESS" ; then
