@@ -64,9 +64,9 @@ cmd_help()
 {
     echo "Usage: $(basename $0) [OPTS] CMD, where CMD can be:"
     echo
-    echo "              start           start modem (if detected and enabled)"
+    echo "              start           start modem (if detected)"
     echo "                              OPTS: -x    reset before start"
-    echo "              stop            stop modem (if detected and enabled)"
+    echo "              stop            stop modem (if detected)"
     echo "              restart         restart modem"
     echo "              status          get modem status"
     echo 
@@ -437,10 +437,12 @@ cmd_start()
     MODEM_STARTING=1
     echo $$ > "${MODEM_PID}"
 
-    if [ "$(/usr/bin/sys_params services/mobile/enabled)" != "true" ]; then
-        info "Mobile not enabled in System Parameters"
-        return 0
-    fi
+    # This check has been pulled out so service can be controlled even without
+    # service being enabled (no autostart)
+    #if [ "$(/usr/bin/sys_params services/mobile/autostart)" != "true" ]; then
+    #    info "Mobile autostart not enabled in System Parameters"
+    #    return 0
+    #fi
 
     epad_reset
 
