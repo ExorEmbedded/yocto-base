@@ -38,6 +38,7 @@ ERR_MODEMTIMEOUT=120
 ERR_MODEMERROR=130
 ERR_SIMMISSING=200
 ERR_PINREQUIRED=300
+ERR_NEWPINREQUIRED=301
 ERR_PINERROR=310
 ERR_PUKREQUIRED=320
 ERR_PUKERROR=330
@@ -324,10 +325,12 @@ cmd_config()
         fi
     elif [ "${out}" = "+CPIN: SIM PUK" ]; then
         local puk="`/usr/bin/sys_params services/mobile/puk 2>/dev/null`"
+        local pin="`/usr/bin/sys_params services/mobile/pin 2>/dev/null`"
         if [ "${puk}" = "" ]; then 
             notify_error ${ERR_PUKREQUIRED}
+        elif [ "${pin}" = "" ]; then
+            notify_error ${ERR_NEWPINREQUIRED}
         else
-            local pin="`/usr/bin/sys_params services/mobile/pin 2>/dev/null`"
             # Note: quotes are necessary in this case
             send_expect "${dev}" "AT+CPIN=\"${puk}\",\"${pin}\"" "^\+QIND: PB DONE"
             # never remember PUK to avoid auto lock out
