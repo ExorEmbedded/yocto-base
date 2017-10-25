@@ -138,6 +138,11 @@ if [ ! "$etcVers" = "$bspVers" ]; then
    rm -r $ROOTTMPMNT
 fi
 
+if [ ! -e /etc/configured -a -e $FACTORYTMPMNT/machine.ini ]; then
+   exorint_apply_default_settings
+   reboot -f
+fi
+
 psplash-write "PROGRESS 0"
 
 # NOTE: we need to keep the factory partition mounted, in order not to break the link with the password file
