@@ -239,3 +239,50 @@ exorint_fix_settings()
     mv ${tmpFile} ${resolvFile} 
     sync
 }
+
+exorint_apply_default_settings()
+{
+   ( pidof psplash ) && psplash-write "QUIT" && sleep 2
+
+   local rotation=0
+   local res=-1
+   [ -e /etc/rotation ] && read rotation < /etc/rotation
+   psplash --notouch --angle $rotation &
+   sleep 2
+   psplash-write "MSG Configuring settings..."
+
+   # Make sure dbus is running
+   if ! ( pidof dbus-daemon ); then
+       mount | grep "tmpfs on /run " || mount -t tmpfs tmpfs /run
+       mount | grep "tmpfs on /var/volatile " || mount -t tmpfs tmpfs /var/volatile
+       mkdir -p /var/volatile/tmp
+
+       /etc/init.d/dbus-1 start
+   fi
+
+   # Make sure udev is running
+   if ! ( pidof udevd ); then
+       /etc/init.d/udev start
+
+       udevadm trigger
+       udevadm settle
+   fi
+
+   res="$( dbus-send --print-reply --system --dest=com.exor.EPAD '/' com.exor.EPAD.applyDefaultSettings | awk 'FNR == 2 {print $2}' )"
+
+   # Even if configuration failed we have to consider this step done
+   # to avoid looping at the next reboot
+   touch /etc/configured
+   sync
+
+   if [ ! "$res" -eq "0" ]; then
+      psplash-write "MSG ERROR: device configuration failed!
+Please reboot the device
+"
+      while (true); do
+          dbus-send --system --print-reply --dest=com.exor.EPAD "/Buzzer" com.exor.EPAD.Buzzer.beep int32:440 int32:100 &>/dev/null; sleep 3;
+      done
+   fi
+
+   psplash-write "QUIT"
+}
