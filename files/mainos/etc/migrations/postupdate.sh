@@ -260,8 +260,6 @@ while read line; do
         preserveFile "$file"
 done < "$currDefFile"
 
-preserveInit
-
 update_progress $step
 
 # Iterative update from current to last installed version passing through all
@@ -276,6 +274,8 @@ for v in $( echo "$VERSIONS" | tr " " "\n" | sort -n -t _ -k 1 -k 2 -k 3 ); do
 		update_progress $step
         fi
 done
+
+preserveInit
 
 rm -rf /etc/*
 
