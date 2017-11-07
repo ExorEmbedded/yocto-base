@@ -15,6 +15,8 @@ markInitDisabled()
 {
     local name
 
+    mount -o remount,rw ${SETTINGS_ROOT}
+
     rm -f ${SETTINGS_ROOT}/rc5.d/.*.disabled
 
     for script in $(ls ${MAINOS_ROOT}/etc/rc5.d/); do
@@ -25,6 +27,8 @@ markInitDisabled()
             touch ${SETTINGS_ROOT}/rc5.d/.${name}.disabled
         fi
     done
+
+    mount -o remount,ro ${SETTINGS_ROOT}
 }
 
 markInitDisabled
