@@ -247,6 +247,24 @@ exorint_fix_settings()
 
 exorint_apply_default_settings()
 {
+   local what=0
+
+   for option in $@; do
+      case "$option" in
+      network)
+         what=$(($what | 0x1))
+         ;;
+      display)
+         what=$(($what | 0x2))
+         ;;
+      services)
+         what=$(($what | 0x4))
+         ;;
+      esac
+   done
+
+   [ "$what" -eq 0 ] && what=$((0xff))
+
    ( pidof psplash ) && psplash-write "QUIT" && sleep 2
 
    local rotation=0
@@ -274,11 +292,12 @@ exorint_apply_default_settings()
        udevadm settle
    fi
 
-   res="$( dbus-send --print-reply --system --dest=com.exor.EPAD '/' com.exor.EPAD.applyDefaultSettings | awk 'FNR == 2 {print $2}' )"
+   res="$( dbus-send --print-reply --system --dest=com.exor.EPAD '/' com.exor.EPAD.applyDefaultSettings string:"/mnt/factory/machine.ini" int32:$what | awk 'FNR == 2 {print $2}' )"
 
    # Even if configuration failed we have to consider this step done
    # to avoid looping at the next reboot
    touch /etc/configured
+   touch /etc/network/interfaces
    sync
 
    if [ ! "$res" -eq "0" ]; then
