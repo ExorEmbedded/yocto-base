@@ -132,7 +132,12 @@ exorint_swflagarea_bit()
     local rbyte=$(( ${1}/8 +1))
     local roffset=$(( 1 << ( ${1} & 7) ))
 
-    echo $(( $( echo ${swFlagArea} | cut -d' ' -f ${rbyte}) & ${roffset} ))
+    if [ "$(( 0x$( echo ${swFlagArea} | cut -d' ' -f ${rbyte}) & ${roffset} ))" -ne 0 ]; then
+       echo 1
+    else
+       echo 0
+    fi
+
     return 0
 }
 
