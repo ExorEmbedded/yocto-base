@@ -279,6 +279,7 @@ exorint_apply_default_settings()
        mount | grep "tmpfs on /run " || mount -t tmpfs tmpfs /run
        mount | grep "tmpfs on /var/volatile " || mount -t tmpfs tmpfs /var/volatile
        mkdir -p /var/volatile/tmp
+       mkdir -p /run/lock
 
        /etc/init.d/dbus-1 start
    fi
