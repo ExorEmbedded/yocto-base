@@ -25,6 +25,14 @@ autorun() {
 	fi
     done
 
+    if [ -e /mnt/${1}/resetnetworksettings ]; then
+        echo "Network reset requested - fowarding to EPAD" | logger -t "AUTORUN"
+        dbus-send --print-reply --system --dest=com.exor.EPAD "/NetworkManager" com.exor.EPAD.NetworkManager.resetConfiguration
+
+        # continuous beep to force user to remove key and reboot
+        dbus-send --system --print-reply --dest=com.exor.EPAD "/Buzzer" com.exor.EPAD.Buzzer.beep int32:440 int32:-1
+    fi
+
     FILE=/mnt/${1}/${SCRIPT}
 
     if [ -f ${FILE} ]; then
