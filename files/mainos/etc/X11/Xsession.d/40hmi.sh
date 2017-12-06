@@ -57,6 +57,19 @@ if [[ -e /etc/nokiosk ]] ; then
 else
     if [ ! -z "$FASTBOOT" ] && [ -e "/mnt/data/hmi/$FASTBOOT/run.sh" ] && [ "$apps_to_launch" -eq "1" ] && [ "$FASTBOOT" == "$app_to_launch_name" ]; then
         echo "HMI: KIOSK - FASTBOOT" | logger
+
+        # Without codesys JMobile is able to handle starting on a RO location.
+        # In this case we can defer data partition fsck and RW remount to speed up the boot
+        if [ "$FASTBOOT" != "qthmi"] || [ -e /mnt/data/hmi/codesys_auto -o -e /mnt/data/hmi/qthmi/codesys_auto ]; then
+                DATAPARTITION=/dev/mmcblk1p6
+                DATATMPMNT=/mnt/data
+
+                [ "$ENABLE_ROOTFS_FSCK" = "yes" ] && fsck -a $DATAPARTITION
+                mount -o remount,rw $DATATMPMNT
+                mount -o remount,rw /home
+
+        fi
+
         cd /mnt/data/hmi/"$FASTBOOT" || return
         ( ./run.sh -kiosk |& logger ) & # ticket 682
         sleep 20;
