@@ -8,9 +8,6 @@ SCRIPT=autoexec.sh
 # consistecy check : are we executing the script from the deviced signalled by kernel?
 cat /proc/mounts | grep "$DEVNAME " | grep "/mnt/$1 " || exit
 
-# exit if autoexec is locked by factory setting
-[ "$(/usr/bin/sys_params -r factory/services/autorun/mode)" = "locked" ] && exit
-
 echo > /tmp/autorun
 
 autorun() {
@@ -33,6 +30,9 @@ autorun() {
         dbus-send --system --print-reply --dest=com.exor.EPAD "/Buzzer" com.exor.EPAD.Buzzer.beep int32:440 int32:-1
     fi
 
+    # exit if autoexec is locked by factory setting
+    [ "$(/usr/bin/sys_params -r factory/services/autorun/mode)" = "locked" ] && exit
+
     FILE=/mnt/${1}/${SCRIPT}
 
     if [ -f ${FILE} ]; then
@@ -41,4 +41,3 @@ autorun() {
 }
 
 autorun $@ &
-
