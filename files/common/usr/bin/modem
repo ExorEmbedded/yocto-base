@@ -12,7 +12,12 @@
 #   - managed by /etc/init.d/networking ('start','stop')
 #   - EPAD ServiceManager poll ('status')
 # 
-# Return values:
+# Return values (upon start):
+#   0       Success
+#   1       Usage error
+#   2       System Parameter Error (notified to EPAD)
+#
+# Return values (upon status):
 #   0       Success
 #   1       Usage error
 #   2       System Parameter Error (notified to EPAD)
@@ -21,7 +26,8 @@
 #   - 3GPP TS 27.007
 
 MODEM_BAUD=3000000
-MODEM_PID="/var/run/modem.pid"
+MODEM_PID="/var/run/modem.pid"  # this script is alive only while starting
+MODEM_RUNNING="/var/run/modem.running"  # between start and stop
 MODEM_IFACE="ppp0"
 MODEM_STARTING=0
 
@@ -432,11 +438,9 @@ cmd_off()
 
 cmd_start()
 {
-    if [ -e "${MODEM_PID}" ]; then
-        info "Modem script already running"
-        return 0
-    fi
+    [ -e "${MODEM_RUNNING}" ] && info "Already running" && exit 0
 
+    touch "${MODEM_RUNNING}"
     MODEM_STARTING=1
     echo $$ > "${MODEM_PID}"
 
@@ -475,11 +479,16 @@ cmd_start()
 
 cmd_stop()
 {
+    [ ! -e "${MODEM_RUNNING}" ] && info "Already stopped" && exit 0
+
     local dev=$(cmd_dev)
     if [ -z ${dev} ]; then
         info "No PLCM09 present"
         return 0
     fi
+
+    # make sure state is idle from now onwards
+    rm -f "${MODEM_RUNNING}"
 
     # Reset all mobile volatile info and state
     epad_set_volatile "services/mobile/info/signal" ""
@@ -514,9 +523,10 @@ cmd_status()
         echo "connected;${rx}/${tx}"
         return 3
     fi
-    pidof pppd >/dev/null && echo "running" && return 2
+    [ ! -e "${MODEM_RUNNING}" ] && echo "idle" && return 0
     [ -e "${MODEM_PID}" ] && echo "starting" && return 1
-    echo "idle" && return 0
+    pidof pppd >/dev/null && echo "running" && return 2
+    echo "error" && return 99
 }
 
 # Avoid terminated output
