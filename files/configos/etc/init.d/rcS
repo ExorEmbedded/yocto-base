@@ -95,6 +95,10 @@ mkdir $MAINOSTMPMNT
 mkdir $DATATMPMNT
 mount -o ro $MAINOSPARTITION $MAINOSTMPMNT
 mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
+if [ $? -ne 0 ]; then
+   mke2fs -T ext4 -L "data" $DATAPARTITION
+   mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
+fi
 
 [ -e $CMDFILE ] && /etc/updateCmd.sh
 

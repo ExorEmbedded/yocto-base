@@ -168,6 +168,11 @@ else
     mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
 fi
 
+if [ $? -ne 0 ]; then
+   mke2fs -T ext4 -L "data" $DATAPARTITION
+   mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
+fi
+
 [ -e $CMDFILE ] && /etc/updateCmd.sh
 
 
