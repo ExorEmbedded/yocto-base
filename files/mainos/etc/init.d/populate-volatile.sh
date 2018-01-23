@@ -13,7 +13,7 @@ DIRNAME=`dirname $0`
 ROOT_DIR=`echo $DIRNAME | sed -ne 's:/etc/.*::p'`
 
 [ -e ${ROOT_DIR}/etc/default/rcS ] && . ${ROOT_DIR}/etc/default/rcS
-[ -e ${ROOT_DIR}/etc/exorint.funcs ] && . ${ROOT_DIR}/etc/exorint.funcs
+[ -e /etc/exorint.funcs ] && . /etc/exorint.funcs
 # When running populate-volatile.sh at rootfs time, disable cache.
 [ -n "$ROOT_DIR" ] && VOLATILE_ENABLE_CACHE=no
 # If rootfs is read-only, disable cache.
