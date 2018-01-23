@@ -8,6 +8,7 @@ ln -s /proc/self/fd     			/dev/fd
 
 # Source defaults.
 . /etc/default/rcS
+. /etc/exorint.funcs
 
 JMLAUNCHER_FILE="/mnt/data/hmi/jmlauncher.xml"
 
@@ -64,10 +65,11 @@ else
                 DATAPARTITION=/dev/mmcblk1p6
                 DATATMPMNT=/mnt/data
 
-                [ "$ENABLE_ROOTFS_FSCK" = "yes" ] && fsck -a $DATAPARTITION
-                mount -o remount,rw $DATATMPMNT
-                mount -o remount,rw /home
-
+		if ( mount | grep $DATAPARTITION | grep -q -v rw, ); then
+			[ "$ENABLE_ROOTFS_FSCK" = "yes" ] && exorint_extfsck $DATAPARTITION
+			mount -o remount,rw $DATATMPMNT
+			mount -o remount,rw /home
+		fi
         fi
 
         cd /mnt/data/hmi/"$FASTBOOT" || return
@@ -79,4 +81,3 @@ else
         DISPLAY=:0 dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchHMI | logger
     fi
 fi
-
