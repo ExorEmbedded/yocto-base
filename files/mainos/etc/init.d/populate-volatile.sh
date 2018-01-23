@@ -13,6 +13,7 @@ DIRNAME=`dirname $0`
 ROOT_DIR=`echo $DIRNAME | sed -ne 's:/etc/.*::p'`
 
 [ -e ${ROOT_DIR}/etc/default/rcS ] && . ${ROOT_DIR}/etc/default/rcS
+[ -e ${ROOT_DIR}/etc/exorint.funcs ] && . ${ROOT_DIR}/etc/exorint.funcs
 # When running populate-volatile.sh at rootfs time, disable cache.
 [ -n "$ROOT_DIR" ] && VOLATILE_ENABLE_CACHE=no
 # If rootfs is read-only, disable cache.
@@ -237,8 +238,16 @@ fi
 
 # At boot time, mount persistent log location if persistence is enabled
 if [ "$logP" = "y" ]; then
-    fsck -a /mnt/data/
-    mount -o remount,rw /mnt/data/
+
+    DATAPARTITION=/dev/mmcblk1p6
+    DATATMPMNT=/mnt/data
+
+    if ( mount | grep $DATAPARTITION | grep -q -v rw, ); then
+        [ "$ENABLE_ROOTFS_FSCK" = "yes" ] && exorint_extfsck $DATAPARTITION
+        mount -o remount,rw $DATATMPMNT
+        mount -o remount,rw /home
+    fi
+
     mkdir -p $PERSISTENTLOGDIR
     mount -o bind $PERSISTENTLOGDIR $VOLATILELOGDIR
 fi

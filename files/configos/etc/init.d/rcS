@@ -42,8 +42,8 @@ mount -t tmpfs -o rw,size=1M tmpfs /mnt
 mkdir $FACTORYTMPMNT
 mount -o ro $FACTORYPARTITION $FACTORYTMPMNT
 if [ $? -ne 0 ]; then
-   mke2fs -T ext3 -L "factory" $FACTORYPARTITION
-   mount -o ro $FACTORYPARTITION $FACTORYTMPMNT
+   mke2fs -T ext4 -L "factory" $FACTORYPARTITION
+   mount -t ext4 -o ro $FACTORYPARTITION $FACTORYTMPMNT
 fi
 
 # Disable console on framebuffer to avoid showing console output and
@@ -87,17 +87,17 @@ ln -s -b $FACTORYTMPMNT'shadow' /etc/shadow
 
 # Mount mainos and data filesystems
 if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
-  fsck -a $MAINOSPARTITION
-  fsck -a $DATAPARTITION
+  exorint_extfsck $MAINOSPARTITION
+  exorint_extfsck $DATAPARTITION
 fi
 
 mkdir $MAINOSTMPMNT
 mkdir $DATATMPMNT
-mount -o ro $MAINOSPARTITION $MAINOSTMPMNT
-mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
+mount -t ext4 -o ro $MAINOSPARTITION $MAINOSTMPMNT
+mount -t ext4 -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
 if [ $? -ne 0 ]; then
    mke2fs -T ext4 -L "data" $DATAPARTITION
-   mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
+   mount -t ext4 -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
 fi
 
 [ -e $CMDFILE ] && /etc/updateCmd.sh
@@ -127,7 +127,7 @@ if [ "$(exorint_ver_type)" = "DEVICE" ]; then
     # bootcounter reset - done by psplash for panels
     psplash-write "QUIT"
 
-    #Blink fault led to know if we are in configos
+    # Blink fault led to know if we are in configos
     echo timer > /sys/class/leds/us01\:fault\:usr0/trigger
     echo 100 > /sys/class/leds/us01\:fault\:usr0/delay_on
     echo 1000 > /sys/class/leds/us01\:fault\:usr0/delay_off
