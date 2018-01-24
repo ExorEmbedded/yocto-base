@@ -311,3 +311,17 @@ Please reboot the device
 
    psplash-write "QUIT"
 }
+
+# Perform fsck on ext partitions
+# $1 Partition device
+exorint_extfsck() {
+
+   fsck -a $1
+
+   # If we still have unresolved errors run "fsck -y" and
+   # if needed recreate the journal
+   if [ $? -gt 3 ]; then
+      fsck -y $1
+      tune2fs -O has_journal $1
+   fi
+}
