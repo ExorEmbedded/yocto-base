@@ -115,6 +115,8 @@ PROGRESS_STATE=10
 echo $PROGRESS_STATE > $TMPDIR/progress_state
 psplash-write "PROGRESS $PROGRESS_STATE"
 
+sleep 1;
+
 # Blind device management
 if [ "$(exorint_ver_type)" = "ROUTER" ]; then
     exorint_service_enable "router"
@@ -128,10 +130,13 @@ if [ "$(exorint_ver_type)" = "DEVICE" ]; then
     psplash-write "QUIT"
 fi
 
-# Blink fault led to know if we are in configos
-echo timer > /sys/class/leds/us01\:fault\:usr0/trigger
-echo 100 > /sys/class/leds/us01\:fault\:usr0/delay_on
-echo 1000 > /sys/class/leds/us01\:fault\:usr0/delay_off
+if [ -d /sys/class/leds/us01\:fault\:usr0/ ]
+then
+    # Blink fault led to know if we are in configos
+    echo timer > /sys/class/leds/us01\:fault\:usr0/trigger
+    echo 100 > /sys/class/leds/us01\:fault\:usr0/delay_on
+    echo 1000 > /sys/class/leds/us01\:fault\:usr0/delay_off
+fi;
 
 # Call all parts in order
 exec /etc/init.d/rc S
