@@ -86,6 +86,19 @@ fi
 
 mount -t ext4 $ETCPARTITION /etc
 
+# Verify etc partition is properly populated (if no, copy original /etc to it)
+if [ ! -d '/etc/init.d' ]; then
+   # The partition does not contain a valid etc folder
+   umount -l /etc
+   mke2fs -T ext4 -L "etc" $ETCPARTITION
+   mkdir $ETCTMPMNT
+   mount -t ext4 $ETCPARTITION $ETCTMPMNT
+   cp -a /etc/. $ETCTMPMNT
+   sync
+   mount --move $ETCTMPMNT /etc
+   rm -rf $ETCTMPMNT
+fi
+
 # Post-processing - setup other links to factory (global settings)
 [ ! -L /etc/pointercal.xinput ] && ln -sf $FACTORYTMPMNT/etc/pointercal.xinput /etc/pointercal.xinput
 [ ! -L /etc/rotation ] && ln -sf $FACTORYTMPMNT/etc/rotation /etc/rotation
@@ -124,19 +137,6 @@ if [ -x /usr/bin/xsplash ]; then
 fi;
 
 /usr/bin/psplash --angle $rotation $psplash_opts &
-
-# Verify etc partition is properly populated (if no, copy original /etc to it)
-if [ ! -d '/etc/init.d' ]; then
-   # The partition does not contain a valid etc folder
-   umount -l /etc
-   mke2fs -T ext4 -L "etc" $ETCPARTITION
-   mkdir $ETCTMPMNT
-   mount -t ext4 $ETCPARTITION $ETCTMPMNT
-   cp -a /etc/. $ETCTMPMNT
-   sync
-   mount --move $ETCTMPMNT /etc
-   rm -rf $ETCTMPMNT
-fi
 
 # Check if shadow in final etc partition is a link to a valid file 
 if [ ! -L /etc/'shadow' ]; then
