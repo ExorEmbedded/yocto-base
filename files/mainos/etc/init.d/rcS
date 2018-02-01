@@ -86,6 +86,12 @@ fi
 
 mount -t ext4 $ETCPARTITION /etc
 
+# Post-processing - setup other links to factory (global settings)
+[ ! -L /etc/pointercal.xinput ] && ln -sf $FACTORYTMPMNT/etc/pointercal.xinput /etc/pointercal.xinput
+[ ! -L /etc/rotation ] && ln -sf $FACTORYTMPMNT/etc/rotation /etc/rotation
+[ ! -L /etc/X11/xorg.conf.d/x11-rotate.conf ] && mkdir -p /etc/X11/xorg.conf.d && \
+    ln -sf $FACTORYTMPMNT/etc/X11/xorg.conf.d/x11-rotate.conf /etc/X11/xorg.conf.d/x11-rotate.conf
+
 # Read screen rotation settings
 rotation=0
 [ -s /etc/rotation ] && read rotation < /etc/rotation
@@ -192,12 +198,6 @@ exorint_data_quotaon $DATATMPMNT $QUOTA_DATA_RESERVED
 # Move /home to data partition
 [ ! -d "$DATATMPMNT/home" ] && cp -rp /home $DATATMPMNT
 mount -o bind $DATATMPMNT/home /home
-
-# Post-processing - setup other links to factory (global settings)
-[ ! -L /etc/pointercal.xinput ] && ln -sf $FACTORYTMPMNT/etc/pointercal.xinput /etc/pointercal.xinput
-[ ! -L /etc/rotation ] && ln -sf $FACTORYTMPMNT/etc/rotation /etc/rotation
-[ ! -L /etc/X11/xorg.conf.d/x11-rotate.conf ] && mkdir -p /etc/X11/xorg.conf.d && \
-    ln -sf $FACTORYTMPMNT/etc/X11/xorg.conf.d/x11-rotate.conf /etc/X11/xorg.conf.d/x11-rotate.conf
 
 # Update splash progress bar
 PROGRESS_STATE=10
