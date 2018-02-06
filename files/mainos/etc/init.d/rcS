@@ -32,6 +32,19 @@ CMDFILE=$DATATMPMNT/updateCmd
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 
+#1024 Reboot system if ipu problem
+/bin/dmesg | /bin/grep "timeout when waiting for flip irq" -q
+if [ $? = 0 ]
+then
+    if [ -e /sys/bus/i2c/devices/0-0068/nvram ]
+    then
+        hex_val=$(/usr/bin/hexdump -C /sys/bus/i2c/devices/0-0068/nvram | /bin/sed -n 1p | /usr/bin/awk '{print $3}')
+        hex_val=$(( hex_val-1))
+        /bin/echo -ne "\x$hex_val" | /bin/dd of=/sys/bus/i2c/devices/0-0068/nvram bs=1 count=1 seek=1
+        reboot -f
+    fi
+fi
+
 # Source defaults.
 . /etc/default/rcS
 . /etc/exorint.funcs
