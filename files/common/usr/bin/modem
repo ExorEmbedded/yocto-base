@@ -1,0 +1,579 @@
+#!/bin/bash
+#
+# Modem control script
+#
+# Supported models:
+#   - PLCM09 Plugin with Quectel 3G Modem
+# 
+# Prerequisites:
+#   - udev must be up and running (for setup of /dev/plugin* links)
+#
+# Callers:
+#   - managed by /etc/init.d/networking ('start','stop')
+#   - EPAD ServiceManager poll ('status')
+# 
+# Return values (upon start):
+#   0       Success
+#   1       Usage error
+#   2       System Parameter Error (notified to EPAD)
+#
+# Return values (upon status):
+#   0       Success
+#   1       Usage error
+#   2       System Parameter Error (notified to EPAD)
+#
+# References
+#   - 3GPP TS 27.007
+
+MODEM_BAUD=3000000
+MODEM_PID="/var/run/modem.pid"  # this script is alive only while starting
+MODEM_RUNNING="/var/run/modem.running"  # between start and stop
+MODEM_IFACE="ppp0"
+MODEM_STARTING=0
+
+MODEMOUT="/tmp/modem.out"
+MAX_RETRIES=30
+MODEM_KILLING=0
+
+ERR_SUCCESS=0
+ERR_GENERICERROR=1
+ERR_SYSTEMERROR=10
+ERR_MODEMNOTFOUND=100
+ERR_MODEMCOMM=110
+ERR_MODEMTIMEOUT=120
+ERR_MODEMERROR=130
+ERR_SIMMISSING=200
+ERR_PINREQUIRED=300
+ERR_NEWPINREQUIRED=301
+ERR_PINERROR=310
+ERR_PUKREQUIRED=320
+ERR_PUKERROR=330
+ERR_ROAMINGBLOCKED=400
+
+info()
+{
+    >&2 echo "# $@" 
+    echo "$@" | logger -t modem 
+}
+
+log()
+{
+    [ $VERBOSE -eq 0 ] && return 0
+    info "$@"
+}
+
+err()
+{
+    info "[ERROR] $@"
+}
+
+cmd_help()
+{
+    echo "Usage: $(basename $0) [OPTS] CMD, where CMD can be:"
+    echo
+    echo "              start           start modem (if detected)"
+    echo "                              OPTS: -x    reset before start"
+    echo "              stop            stop modem (if detected)"
+    echo "              restart         restart modem"
+    echo "              status          get modem status"
+    echo 
+    echo "              dev             get device name (empty string if not detected)"
+    echo "              com             get serial device name (empty string if not detected)"
+    echo "              on              power up only"
+    echo "              off             power off only"
+    echo
+    echo "Other OPTS:"
+    echo "              -v              verbose mode"
+}
+
+cmd_dev()
+{
+    for plugin in /dev/plugin*; do
+        if [ "`cat ${plugin}/hwcode 2> /dev/null`" = "13" ] && [ "`cat ${plugin}/installed 2>/dev/null`" = "1" ]; then
+            echo ${plugin}
+            return 0
+        fi
+    done
+
+    die ${ERR_MODEMNOTFOUND}
+}
+
+cmd_com()
+{
+    local dev=$1
+    local i
+    [ -z $1 ] && dev=$(cmd_dev)
+
+    [ $? -ne 0 ] && return 1
+    # initialize modem baud rate / 2 plugins for each serial device starting from 1
+    i=$(echo ${dev} | tr -d /dev/plugin/)
+    echo /dev/com$((i/2+2))
+
+    return 0
+}
+
+cmd_send()
+{
+    log "=> $2"
+
+    printf "$2\r" > $1 2>/dev/null
+}
+
+modem_reader()
+{
+    local dev=$1
+
+    log "Starting reader on ${dev}"
+
+    cat "${dev}" | while read line; do
+        [ "${line}" = "" ] && continue
+        log "<= ${line}"
+        echo "$line" | tr -d '\r' >> "${MODEMOUT}"
+    done
+}
+
+send_expect()
+{
+    local dev=$1
+    local send=$2
+    local expect=$3
+    local retry=$4
+
+    rm -f "${MODEMOUT}"
+
+    log "Expect ${expect}"
+
+    log "=> ${send}"
+    printf "${send}\r" > "${dev}"
+
+    for ((i=0; i < ${MAX_RETRIES}; i++)); do
+        [ ${MODEM_KILLING} -eq 1 ] && exit 1
+        [ -e "${MODEMOUT}" ] && grep -E "${expect}" "${MODEMOUT}" && return 0
+        [ -e "${MODEMOUT}" ] && grep -q -E "^\+CME ERROR: 16" "${MODEMOUT}" && return 100
+        [ -e "${MODEMOUT}" ] && grep -q -E "^.*ERROR" "${MODEMOUT}" && return 10
+        sleep 1
+        if [ "${retry}" = "1" ]; then
+             log "x=> ${send}"
+             printf "${send}\r" > "${dev}"
+        fi
+    done
+    return 1
+}
+
+wrap_send()
+{
+    $@
+    local rc=$?
+    [ ${rc} -eq 0 ] && return 0
+
+    modem off
+    case ${rc} in
+        1)
+            notify_error ${ERR_MODEMTIMEOUT}
+            ;;
+        10)
+            notify_error ${ERR_MODEMERROR}
+            ;;
+        100)
+            notify_error ${ERR_PINERROR}
+            ;;
+        *)
+            notify_error ${ERR_SYSTEMERROR}
+            ;;
+    esac            
+}
+
+# $1: key
+# $1: value
+epad_set_volatile()
+{
+    if [ -z "$2" ]; then
+        log "Deleting EPAD Volatile Parameter: $1"
+    else
+        log "Setting EPAD Volatile Parameter: $1=$2"
+    fi
+    dbus-send --print-reply --system --dest=com.exor.EPAD '/' com.exor.EPAD.setVolatileParameter string:"$1" string:"$2" >/dev/null
+    [ $? -ne 0 ] && err "Failed sending EPAD parameter"
+}
+
+# Reset error state
+epad_reset()
+{
+    # set error state
+    dbus-send --print-reply --system --dest=com.exor.EPAD '/' com.exor.EPAD.setVolatileParameter string:"services/mobile/state" string:"0" >/dev/null
+    [ $? -ne 0 ] && err "Failed sending EPAD error state"
+
+    # set actual error code
+    dbus-send --print-reply --system --dest=com.exor.EPAD '/' com.exor.EPAD.setVolatileParameter string:"services/mobile/error" string:"0" >/dev/null
+    [ $? -ne 0 ] && err "Failed sending EPAD error code"
+}
+
+# $1: error code
+epad_error()
+{
+    [ -z "$1" ] && epad_error ${ERR_SYSTEMERROR}
+
+    # set error state
+    dbus-send --print-reply --system --dest=com.exor.EPAD '/' com.exor.EPAD.setVolatileParameter string:"services/mobile/state" string:"-1" >/dev/null
+    [ $? -ne 0 ] && err "Failed sending EPAD error state"
+
+    # set actual error code
+    dbus-send --print-reply --system --dest=com.exor.EPAD '/' com.exor.EPAD.setVolatileParameter string:"services/mobile/error" string:"$1" >/dev/null
+    [ $? -ne 0 ] && err "Failed sending EPAD error code"
+}
+
+# Set error as EPAD Volatile System Parameter
+# $1: error code
+notify_error()
+{
+    local err=$1
+    [ -z ${err} ] && epad_error ${ERR_SYSTEMERROR}
+
+    err "code: ${err}"
+
+    epad_error ${err}
+    exit 2
+}
+
+spawn_reader()
+{
+    modem_reader "${dev}" &
+    modem_pid=$!
+
+    log "Reader on PID ${modem_pid}"
+}
+
+# Quectel specs
+#         0 -113dBm or less
+#         1 -111dBm
+#         2...30 -109... -53dBm
+#         31 -51dBm or greater
+#         99 Not known or not detectable
+#                   
+# http://www.gprsmodems.co.uk/images/csq1.pdf
+rssiToSignal()
+{
+    [ -z "$1" ] && return 0
+
+    local lev="$((-113 + $1*2))"
+    
+    if [ ${lev} -le -100 ]; then
+        echo "0"
+    elif [ ${lev} -ge -50 ]; then
+        echo "100"
+    else
+        echo $((2 * (${lev}+100)))
+    fi
+}
+
+# $1: serial com device
+cmd_config()
+{
+    local out
+    local dev=$1
+    log "Configuring PLCM09 on serial $1"
+
+    spawn_reader
+
+    wrap_send send_expect "${dev}" "ATE0" "^(atE0|OK)" "1" >/dev/null
+
+    out=$(wrap_send send_expect "${dev}" "AT+QSIMSTAT?" "^\+QSIMSTAT:" | cut -s -d ',' -f 2)
+    [ "${out}" = "1" ] || notify_error ${ERR_SIMMISSING}
+
+    # Since AT+CPINR is unimplemented..
+    # https://developer.gemalto.com/tutorial/how-query-pin-counter-ehsx
+    out="$(send_expect ${dev} "AT+CRSM=242" "^\+CRSM:" | tr -d \")"
+    local crsm=$(echo "${out}" | cut -s -d',' -f 3)
+    local sim_type=${crsm:0:2}
+    local pin_left
+    local puk_left
+    if [ "${sim_type}" = "62" ]; then
+        log "Detected USIM"
+
+        out="$(send_expect ${dev} "AT+CSIM=10,\"0020000100\"" "^\+CSIM: 4" | tr -d \")"
+        local left_hex=$(echo "${out}" | cut -s -d',' -f 2 | tr -d \" | tail -c 2)
+        pin_left="$((16#${left_hex}))"
+
+        out="$(send_expect ${dev} "AT+CSIM=10,\"002C000100\"" "^\+CSIM: 4" | tr -d \")"
+        local left_hex=$(echo "${out}" | cut -s -d',' -f 2 | tr -d \" | tail -c 2)
+        puk_left="$((16#${left_hex}))"
+    else
+        log "Detected SIM"
+        # Note: assume SIM is initialized
+        pin_left="$((16#${crsm:37:1}))"
+        puk_left="$((16#${crsm:39:1}))"
+        epad_set_volatile "services/mobile/puk_left" "$((16#${crsm:39:1}))"
+    fi
+    # set initial counters
+    epad_set_volatile "services/mobile/pin_left" "${pin_left}"
+    epad_set_volatile "services/mobile/puk_left" "${puk_left}"
+
+    out=$(send_expect "${dev}" "AT+CPIN?" "^\+CPIN:")
+    if [ "${out}" = "+CPIN: SIM PIN" ]; then
+        local pin="`/usr/bin/sys_params services/mobile/pin 2>/dev/null`"
+        if [ "${pin}" = "" ]; then 
+            notify_error ${ERR_PINREQUIRED}
+        else
+            send_expect "${dev}" "AT+CPIN=${pin}" "^\+QIND: PB DONE" >/dev/null
+            # remember PIN only if it was correct
+            if [ $? -ne 0 ]; then
+                /usr/bin/sys_params -w services/mobile/pin ""
+                # decrease counter avoiding extra read
+                epad_set_volatile "services/mobile/pin_left" "$((pin_left-1))"
+                if [ "$((pin_left-1))" = "0" ]; then
+                    notify_error ${ERR_PUKREQUIRED}
+                else
+                    notify_error ${ERR_PINERROR}
+                fi
+            fi 
+            # reset counters avoiding extra read
+            epad_set_volatile "services/mobile/pin_left" "3"
+        fi
+    elif [ "${out}" = "+CPIN: SIM PUK" ]; then
+        local puk="`/usr/bin/sys_params services/mobile/puk 2>/dev/null`"
+        local pin="`/usr/bin/sys_params services/mobile/pin 2>/dev/null`"
+        if [ "${puk}" = "" ]; then 
+            notify_error ${ERR_PUKREQUIRED}
+        elif [ "${pin}" = "" ]; then
+            notify_error ${ERR_NEWPINREQUIRED}
+        else
+            # Note: quotes are necessary in this case
+            send_expect "${dev}" "AT+CPIN=\"${puk}\",\"${pin}\"" "^\+QIND: PB DONE"
+            # never remember PUK to avoid auto lock out
+            if [ $? -ne 0 ]; then
+                /usr/bin/sys_params -w services/mobile/puk ""
+                /usr/bin/sys_params -w services/mobile/pin ""
+                # decrease counter avoiding extra read
+                epad_set_volatile "services/mobile/puk_left" "$((puk_left-1))"
+                notify_error ${ERR_PUKERROR}
+            fi
+            # reset counters avoiding extra read
+            epad_set_volatile "services/mobile/pin_left" "3"
+            epad_set_volatile "services/mobile/puk_left" "10"
+            /usr/bin/sys_params -w services/mobile/puk ""
+        fi
+    fi
+
+    # give some time to obtain network info
+    sleep 5
+
+    # CIND - currently unused
+    # wrap_send send_expect "${dev}" "AT+CIND=?" "^\+CIND:"
+    # +CIND: ("call",(0,1)),("roam",(0,1)),("signal",(0-5)),("service",(0,1)),("GPRS coverage",(0,1))
+    #out=$(wrap_send send_expect "${dev}" "AT+CIND?" "^\+CIND:")
+
+    out=$(wrap_send send_expect "${dev}" "AT+CSQ" "^\+CSQ:")
+    local rssi="$(echo ${out} | cut -s -d ' ' -f 2 | cut -s -d ',' -f 1)"
+    if [ "${rssi}" != "99" ]; then  # 99 = error
+        local signal="$(rssiToSignal ${rssi})"
+        epad_set_volatile "services/mobile/info/signal" "${signal}"
+    fi
+
+    out=$(wrap_send send_expect "${dev}" "AT+COPS?" "^\+COPS:")
+    local operator="$(echo ${out} | cut -s -d, -f 3 | tr -d \")"
+    epad_set_volatile "services/mobile/info/operator" "${operator}"
+    # 0   GSM                               2G
+    # 2   UTRAN                             2G
+    # 3   GSM W/EGPRS                       2G
+    # 4   UTRAN W/HSDPA                     3G
+    # 5   UTRAN W/HSUPA                     3G
+    # 6   UTRAN W/HSDPA and HSUPA           3G
+    # 7   E-UTRAN                           LTE
+    local tech="$(echo ${out} | cut -s -d, -f 4)"
+    epad_set_volatile "services/mobile/info/tech" "${tech}"
+
+    # Enable services registration with location information
+    wrap_send send_expect "${dev}" "AT+CREG=2" "^OK" > /dev/null
+
+    # <n>,<stat>[,<lac>,<ci>[,<Act>]]
+    out=$(wrap_send send_expect "${dev}" "AT+CREG?" "^\+CREG:")
+    # 0 Not registered, ME is not currently searching a new operator to register to
+    # 1 Registered, home network
+    # 2 Not registered, but ME is currently searching a new operator to register to 
+    # 3 Registration denied
+    # 4 Unknown
+    # 5 Registered, roaming
+    local regStat="$(echo ${out} | cut -s -d, -f 2)"
+    epad_set_volatile "services/mobile/info/reg/stat" "${regStat}"
+
+    if [ "${regStat}" = "5" ]; then
+        log "Roaming enabled"
+        local roamingEnabled="$(/usr/bin/sys_params -r services/mobile/roamingEnabled)"
+        [ "${roamingEnabled}" != "true" ] && notify_error ${ERR_ROAMINGBLOCKED}
+    fi
+
+    log "Setting speed"
+    cmd_send $1 "AT+IPR=${MODEM_BAUD}"
+
+    # once baud rate is raised, we can't use serial to detect status
+    # modem resets and takes a while to become operational
+    sleep 3
+
+    info "Modem configured"
+}
+
+# $1: plugin device
+cmd_on()
+{
+    local dev=$1
+    [ -z $1 ] && dev=$(cmd_dev)
+
+    info "Powering on PLCM09 at ${dev}"
+    echo 1 > ${dev}/plcm09_power
+    [ $? -ne 0 ] && return 1
+    sleep 1
+}
+
+# $1: plugin device
+cmd_off()
+{
+    local dev=$1
+    [ -z $1 ] && dev=$(cmd_dev)
+
+    info "Powering off ${dev}"
+    echo 0 > ${dev}/plcm09_power
+    [ $? -ne 0 ] && return 1
+    sleep 2
+}
+
+cmd_start()
+{
+    [ -e "${MODEM_RUNNING}" ] && info "Already running" && exit 0
+
+    touch "${MODEM_RUNNING}"
+    MODEM_STARTING=1
+    echo $$ > "${MODEM_PID}"
+
+    # This check has been pulled out so service can be controlled even without
+    # service being enabled (no autostart)
+    #if [ "$(/usr/bin/sys_params services/mobile/autostart)" != "true" ]; then
+    #    info "Mobile autostart not enabled in System Parameters"
+    #    return 0
+    #fi
+
+    epad_reset
+
+    local dev=$(cmd_dev)
+    if [ -z $dev ]; then
+        info "No PLCM09 present"
+        return 0
+    fi
+    log "Found PLCM09 on device: ${dev}"
+
+    # reset if requested
+    if [ ${RESET} -eq 1 ]; then
+        cmd_off ${dev}
+    fi
+
+    cmd_on ${dev}
+    [ $? -eq 0 ] || notify_error ${ERR_MODEMCOMM}
+
+    local com=$(cmd_com)
+    [ -e ${com} ] || notify_error ${ERR_MODEMCOMM}
+
+    cmd_config ${com}
+
+    info "Starting PPP"
+    /etc/init.d/ppp start
+}
+
+cmd_stop()
+{
+    [ ! -e "${MODEM_RUNNING}" ] && info "Already stopped" && exit 0
+
+    local dev=$(cmd_dev)
+    if [ -z ${dev} ]; then
+        info "No PLCM09 present"
+        return 0
+    fi
+
+    # make sure state is idle from now onwards
+    rm -f "${MODEM_RUNNING}"
+
+    # Reset all mobile volatile info and state
+    epad_set_volatile "services/mobile/info/signal" ""
+    epad_set_volatile "services/mobile/info/operator" ""
+    epad_set_volatile "services/mobile/info/tech" ""
+    epad_set_volatile "services/mobile/info/reg/stat" ""
+    epad_set_volatile "services/mobile/state" "0"  # idle
+    epad_set_volatile "services/mobile/error" ""
+
+    info "Stopping PPP"
+    /etc/init.d/ppp stop
+    sleep 1
+
+    cmd_off ${dev}
+}
+
+cmd_restart()
+{
+    cmd_stop
+    cmd_start
+}
+
+# Used by EPAD to update state
+# Returns connection state and prints:
+# <state>;<rx/tx>
+cmd_status()
+{
+    if [ -e /sys/class/net/${MODEM_IFACE} ]; then 
+        # update stats
+        local rx="$(cat /sys/class/net/${MODEM_IFACE}/statistics/rx_bytes)"
+        local tx="$(cat /sys/class/net/${MODEM_IFACE}/statistics/tx_bytes)"
+        echo "connected;${rx}/${tx}"
+        return 3
+    fi
+    [ ! -e "${MODEM_RUNNING}" ] && echo "idle" && return 0
+    [ -e "${MODEM_PID}" ] && echo "starting" && return 1
+    pidof pppd >/dev/null && echo "running" && return 2
+    echo "error" && return 99
+}
+
+# Avoid terminated output
+cleanup()
+{
+    MODEM_KILLING=1
+
+    if [ ! -z $modem_pid ] && [ -e /proc/$modem_pid ]; then
+        pkill -P $modem_pid 2>/dev/null
+    fi
+
+    [ "${MODEM_STARTING}" = "1" ] && rm -f "${MODEM_PID}"
+}
+
+RESET=0
+VERBOSE=0
+
+trap cleanup INT TERM EXIT
+
+while getopts ":hxv" opt; do
+      case ${opt} in
+        h)
+            cmd_help
+            ;;
+        x)
+            RESET=1
+            ;;
+        v)
+            VERBOSE=1
+            ;;
+        *)
+            err "Invalid option: ${opt}!"
+            exit 1
+            ;;
+      esac
+done
+shift $((OPTIND-1))
+
+if [ -z $@ ]; then
+    err "Missing command!"
+    cmd_help
+    exit 1
+fi
+
+for arg in $@; do
+    cmd_$arg
+    exit $?
+done
+
+exit 0

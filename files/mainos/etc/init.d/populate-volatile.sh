@@ -13,6 +13,7 @@ DIRNAME=`dirname $0`
 ROOT_DIR=`echo $DIRNAME | sed -ne 's:/etc/.*::p'`
 
 [ -e ${ROOT_DIR}/etc/default/rcS ] && . ${ROOT_DIR}/etc/default/rcS
+[ -e /etc/exorint.funcs ] && . /etc/exorint.funcs
 # When running populate-volatile.sh at rootfs time, disable cache.
 [ -n "$ROOT_DIR" ] && VOLATILE_ENABLE_CACHE=no
 # If rootfs is read-only, disable cache.
@@ -206,39 +207,49 @@ mkdir -p $VOLATILELOGDIR
 
 # Move log files to a persistent fs
 if [ "$1" = "enable" ]; then
-        # Check if it's already in persistence mode
-        [ "$logP" = "y" ] && exit 0
-        echo "y" > $CFGDIR/pLogFlag
-        mkdir -p $PERSISTENTLOGDIR
-	$SYSLOG stop
-        cp -rp $VOLATILELOGDIR/* $PERSISTENTLOGDIR
-	rm -rf $VOLATILELOGDIR/*
-	mount -o bind $PERSISTENTLOGDIR $VOLATILELOGDIR
-        $SYSLOG start
-	exit 0
+    # Check if it's already in persistence mode
+    [ "$logP" = "y" ] && exit 0
+    echo "y" > $CFGDIR/pLogFlag
+    mkdir -p $PERSISTENTLOGDIR
+    $SYSLOG stop
+    cp -rp $VOLATILELOGDIR/* $PERSISTENTLOGDIR
+    rm -rf $VOLATILELOGDIR/*
+    mount -o bind $PERSISTENTLOGDIR $VOLATILELOGDIR
+    $SYSLOG start
+    exit 0
 fi
 
 # Restore default log files location
 if [ "$1" = "disable" ]; then
-        # Check if persistence mode is really enabled
-        [ ! "$logP" = "y" ] && exit 0
-        echo "n" > $CFGDIR/pLogFlag
-        $SYSLOG	stop
-	umount -l $VOLATILELOGDIR
-        # Tmpfs size is limited in /var/volatile. Copy messages logs first to make sure to save them
-        for mlog in $( find $PERSISTENTLOGDIR/messages* ); do
-                mv $mlog $VOLATILELOGDIR/
-        done
-        cp -rp $PERSISTENTLOGDIR/* $VOLATILELOGDIR
-	$SYSLOG start
-        rm -rf $PERSISTENTLOGDIR
-	exit 0
+    # Check if persistence mode is really enabled
+    [ ! "$logP" = "y" ] && exit 0
+    echo "n" > $CFGDIR/pLogFlag
+    $SYSLOG	stop
+    umount -l $VOLATILELOGDIR
+    # Tmpfs size is limited in /var/volatile. Copy messages logs first to make sure to save them
+    for mlog in $( find $PERSISTENTLOGDIR/messages* ); do
+        mv $mlog $VOLATILELOGDIR/
+    done
+    cp -rp $PERSISTENTLOGDIR/* $VOLATILELOGDIR
+    $SYSLOG start
+    rm -rf $PERSISTENTLOGDIR
+    exit 0
 fi
 
 # At boot time, mount persistent log location if persistence is enabled
 if [ "$logP" = "y" ]; then
-        mkdir -p $PERSISTENTLOGDIR
-        mount -o bind $PERSISTENTLOGDIR $VOLATILELOGDIR
+
+    DATAPARTITION=/dev/mmcblk1p6
+    DATATMPMNT=/mnt/data
+
+    if ( mount | grep $DATAPARTITION | grep -q -v rw, ); then
+        [ "$ENABLE_ROOTFS_FSCK" = "yes" ] && exorint_extfsck $DATAPARTITION
+        mount -o remount,rw $DATATMPMNT
+        mount -o remount,rw /home
+    fi
+
+    mkdir -p $PERSISTENTLOGDIR
+    mount -o bind $PERSISTENTLOGDIR $VOLATILELOGDIR
 fi
 
 [ "${VERBOSE}" != "no" ] && echo "Populating volatile Filesystems."

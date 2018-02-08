@@ -10,6 +10,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # m h dom mon dow user	command
 
 # /etc/cron.* not run automatically with BusyBox because "run-parts --report <dir>" fails!
+*   *     * * *    root        cd / && run-parts /etc/cron.minutely
 1   *     * * *    root        cd / && run-parts /etc/cron.hourly
 30  7     * * *    root        cd / && run-parts /etc/cron.daily
 42  7     * * 7    root        cd / && run-parts /etc/cron.weekly

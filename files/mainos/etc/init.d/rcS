@@ -32,6 +32,19 @@ CMDFILE=$DATATMPMNT/updateCmd
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 
+#1024 Reboot system if ipu problem
+/bin/dmesg | /bin/grep "timeout when waiting for flip irq" -q
+if [ $? = 0 ]
+then
+    if [ -e /sys/bus/i2c/devices/0-0068/nvram ]
+    then
+        hex_val=$(/usr/bin/hexdump -C /sys/bus/i2c/devices/0-0068/nvram | /bin/sed -n 1p | /usr/bin/awk '{print $3}')
+        hex_val=$(( hex_val-1))
+        /bin/echo -ne "\x$hex_val" | /bin/dd of=/sys/bus/i2c/devices/0-0068/nvram bs=1 count=1 seek=1
+        reboot -f
+    fi
+fi
+
 # Source defaults.
 . /etc/default/rcS
 . /etc/exorint.funcs
@@ -55,10 +68,10 @@ mount -t tmpfs -o rw,size=1M tmpfs /mnt
 
 # Mount factory partition to get the splash image (if mount fails, perform format+mount)
 mkdir $FACTORYTMPMNT
-mount -o ro $FACTORYPARTITION $FACTORYTMPMNT
+mount -t ext4 -o ro $FACTORYPARTITION $FACTORYTMPMNT
 if [ $? -ne 0 ]; then
-   mke2fs -T ext3 -L "factory" $FACTORYPARTITION
-   mount -o ro  $FACTORYPARTITION $FACTORYTMPMNT
+   mke2fs -T ext4 -L "factory" $FACTORYPARTITION
+   mount -t ext4 -o ro  $FACTORYPARTITION $FACTORYTMPMNT
 fi
 
 # Copy /etc/shadow from etc to the factory partition if not already there
@@ -69,9 +82,9 @@ if [ ! -e $FACTORYTMPMNT'shadow' ] ; then
   mount -o remount,ro $FACTORYTMPMNT
 fi
 
-[ "$ENABLE_ROOTFS_FSCK" = "yes" ] && fsck -a $ETCPARTITION
+[ "$ENABLE_ROOTFS_FSCK" = "yes" ] && exorint_extfsck $ETCPARTITION
 
-mount $ETCPARTITION /etc
+mount -t ext4 $ETCPARTITION /etc
 
 # Read screen rotation settings
 rotation=0
@@ -110,9 +123,9 @@ fi;
 if [ ! -d '/etc/init.d' ]; then
    # The partition does not contain a valid etc folder
    umount -l /etc
-   mke2fs -T ext3 -L "etc" $ETCPARTITION
+   mke2fs -T ext4 -L "etc" $ETCPARTITION
    mkdir $ETCTMPMNT
-   mount $ETCPARTITION $ETCTMPMNT
+   mount -t ext4 $ETCPARTITION $ETCTMPMNT
    cp -a /etc/. $ETCTMPMNT
    sync
    mount --move $ETCTMPMNT /etc
@@ -138,6 +151,14 @@ if [ ! "$etcVers" = "$bspVers" ]; then
    rm -r $ROOTTMPMNT
 fi
 
+if [ ! -e /etc/configured -a -e $FACTORYTMPMNT/machine.ini ]; then
+   exorint_apply_default_settings
+   reboot -f
+elif [ ! -e /etc/network/interfaces -a -e $FACTORYTMPMNT/machine.ini ]; then
+   exorint_apply_default_settings network
+   reboot -f
+fi
+
 psplash-write "PROGRESS 0"
 
 # NOTE: we need to keep the factory partition mounted, in order not to break the link with the password file
@@ -145,19 +166,21 @@ psplash-write "PROGRESS 0"
 
 # Mount configos and data filesystems
 if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
-   fsck -a $CONFIGOSPARTITION
-   fsck -a $DATAPARTITION
+   exorint_extfsck $CONFIGOSPARTITION
+   exorint_extfsck $DATAPARTITION
 fi
 
-if [ $ENABLE_FASTBOOT != "yes" ]
-then
-    mkdir $CONFIGOSTMPMNT
-    mount -o ro $CONFIGOSPARTITION $CONFIGOSTMPMNT
-    mkdir $DATATMPMNT
-    mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
-else
-    mkdir $DATATMPMNT
-    mount -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
+if [ $ENABLE_FASTBOOT != "yes" ]; then
+   mkdir $CONFIGOSTMPMNT
+   mount -t ext4 -o ro $CONFIGOSPARTITION $CONFIGOSTMPMNT
+fi
+
+mkdir $DATATMPMNT
+mount -t ext4 -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
+
+if [ $? -ne 0 ]; then
+   mke2fs -T ext4 -L "data" $DATAPARTITION
+   mount -t ext4 -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
 fi
 
 [ -e $CMDFILE ] && /etc/updateCmd.sh
@@ -166,7 +189,7 @@ fi
 exorint_fix_settings /mnt
 exorint_data_quotaon $DATATMPMNT $QUOTA_DATA_RESERVED
 
-# Move /home to data partition 
+# Move /home to data partition
 [ ! -d "$DATATMPMNT/home" ] && cp -rp /home $DATATMPMNT
 mount -o bind $DATATMPMNT/home /home
 
@@ -178,21 +201,8 @@ mount -o bind $DATATMPMNT/home /home
 
 # Update splash progress bar
 PROGRESS_STATE=10
-echo $PROGRESS_STATE > $TMPDIR/progress_state 
+echo $PROGRESS_STATE > $TMPDIR/progress_state
 psplash-write "PROGRESS $PROGRESS_STATE"
-
-# Blind device management
-if [ "$(exorint_ver_type)" = "ROUTER" ]; then
-    exorint_service_enable "router"
-    # bootcounter reset - done by psplash for panels
-    psplash-write "QUIT"
-fi
-
-# Blind device management
-if [ "$(exorint_ver_type)" = "DEVICE" ]; then
-    # bootcounter reset - done by psplash for panels
-    psplash-write "QUIT"
-fi
 
 # Call all parts in order
 exec /etc/init.d/rc S

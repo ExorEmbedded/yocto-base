@@ -103,6 +103,44 @@ exorint_hostname()
     return 0
 }
 
+# Gets SWFlagArea bit value. Returns 1 and a 0 value on error or area not set (invalid checksum)
+# $1 bit offset
+exorint_swflagarea_bit()
+{
+    if [ -z "$1" ];then
+        echo 0
+        return 1;
+    fi
+
+    local swFlagArea="$(dd if=/sys/bus/i2c/devices/0-0054/eeprom skip=248 bs=1 count=7 2>/dev/null | hexdump -e '16/1 "%02x "')"
+    local swFlagArea_chksum="$(dd if=/sys/bus/i2c/devices/0-0054/eeprom skip=255 bs=1 count=1 2>/dev/null | hexdump -e '16/1 "%02x "')"
+
+    # 1 - 0xAA
+    local chksum="-169"
+
+    for byte in $swFlagArea; do
+        chksum=$(( $chksum + 0x${byte} ))
+    done
+
+    chksum=$(( $chksum & 255 ))
+
+    if [ "$chksum" -ne $(( 0x${swFlagArea_chksum} )) ]; then
+       echo 0
+       return 1
+    fi
+
+    local rbyte=$(( ${1}/8 +1))
+    local roffset=$(( 1 << ( ${1} & 7) ))
+
+    if [ "$(( 0x$( echo ${swFlagArea} | cut -d' ' -f ${rbyte}) & ${roffset} ))" -ne 0 ]; then
+       echo 1
+    else
+       echo 0
+    fi
+
+    return 0
+}
+
 # Activation of quota on data partition
 # $1 data partitin device
 # $2 reserved space
@@ -126,6 +164,7 @@ exorint_iface_metric()
 {
     local iface=$1
     local metric=999
+    local type=$(cat /sys/class/net/$iface/type)
 
     if [ $iface = "br0" ]; then
        metric=50
@@ -133,6 +172,8 @@ exorint_iface_metric()
        metric=90
     elif echo $iface | grep -E -q "^eth[0-9]+"; then
        metric=$(( 100 + (${iface:3}*10) )) # ethX has metric 100+10x
+    elif [ $type -eq 512 ]; then  # ppp
+       metric=70
     elif iw dev | grep -q "Interface $iface"; then
        metric=80
     fi
@@ -202,4 +243,85 @@ exorint_fix_settings()
     cat ${resolvFile} | uniq | head -n ${ntrunc} >> ${tmpFile}
     mv ${tmpFile} ${resolvFile} 
     sync
+}
+
+exorint_apply_default_settings()
+{
+   local what=0
+
+   for option in $@; do
+      case "$option" in
+      network)
+         what=$(($what | 0x1))
+         ;;
+      display)
+         what=$(($what | 0x2))
+         ;;
+      services)
+         what=$(($what | 0x4))
+         ;;
+      esac
+   done
+
+   [ "$what" -eq 0 ] && what=$((0xff))
+
+   ( pidof psplash ) && psplash-write "QUIT" && sleep 2
+
+   local rotation=0
+   local res=-1
+   [ -e /etc/rotation ] && read rotation < /etc/rotation
+   psplash --notouch --angle $rotation &
+   sleep 2
+   psplash-write "MSG Configuring settings..."
+
+   # Make sure dbus is running
+   if ! ( pidof dbus-daemon ); then
+       mount | grep "tmpfs on /run " || mount -t tmpfs tmpfs /run
+       mount | grep "tmpfs on /var/volatile " || mount -t tmpfs tmpfs /var/volatile
+       mkdir -p /var/volatile/tmp
+       mkdir -p /run/lock
+
+       /etc/init.d/dbus-1 start
+   fi
+
+   # Make sure udev is running
+   if ! ( pidof udevd ); then
+       /etc/init.d/udev start
+
+       udevadm trigger
+       udevadm settle
+   fi
+
+   res="$( dbus-send --print-reply --system --dest=com.exor.EPAD '/' com.exor.EPAD.applyDefaultSettings string:"/mnt/factory/machine.ini" int32:$what | awk 'FNR == 2 {print $2}' )"
+
+   # Even if configuration failed we have to consider this step done
+   # to avoid looping at the next reboot
+   touch /etc/configured
+   touch /etc/network/interfaces
+   sync
+
+   if [ ! "$res" -eq "0" ]; then
+      psplash-write "MSG ERROR: device configuration failed!
+Please reboot the device
+"
+      while (true); do
+          dbus-send --system --print-reply --dest=com.exor.EPAD "/Buzzer" com.exor.EPAD.Buzzer.beep int32:440 int32:100 &>/dev/null; sleep 3;
+      done
+   fi
+
+   psplash-write "QUIT"
+}
+
+# Perform fsck on ext partitions
+# $1 Partition device
+exorint_extfsck() {
+
+   e2fsck -p $1
+
+   # If we still have unresolved errors run "fsck -y" and
+   # if needed recreate the journal
+   if [ $? -gt 3 ]; then
+      e2fsck -y $1
+      tune2fs -O has_journal $1
+   fi
 }

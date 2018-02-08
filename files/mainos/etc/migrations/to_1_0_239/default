@@ -1,0 +1,36 @@
+#
+# Here are listed all the files and directories that will be preserved during the postupdate. To update the list
+# copy this file in a new migration step directory, delete/comment lines to discard currently preserved files and add 
+# new entries to preserve more files. Note that this file can be used only to preserve files from etc(rw) before they 
+# will be updated with new ones from etc(ro). Remember that at the moment the postupdate is executed the rootfs has 
+# already been formatted.
+#
+# Entries should be specified in one of the following ways:
+# - /absolute/path/to/file will preserve the specified file (ie the file won't be overwritten by the postupdate).
+# - /absolute/path/to/directory will preserve the directory. This means that the entire content of the 
+#         directory will remain as it is (ie additional files in this directory from the update will be deleted).
+# - /absolute/path/to/directory/* a shortcut that allows to preserve all the files inside the directory. Additional 
+#         files in this directory from the update will be kept.
+#
+
+/etc/EPAD/system.ini
+/etc/network/interfaces
+/etc/network.persist/
+/etc/default/volatiles/pLogFlag
+/etc/hostname
+/etc/resolv.conf 
+/etc/ssh/ssh_host_rsa_key
+/etc/ssh/ssh_host_rsa_key.pub
+/etc/jmuconfig/
+/etc/ntp.conf
+/etc/localtime
+/etc/timezone
+/etc/X11/app-defaults/XScreenSaver
+/etc/time.conf
+/etc/wpa_supplicant.conf
+/etc/x11vnc/x11vnc.conf
+/etc/x11vnc/x11vnc.pw
+/etc/configured
+
+# Preserve services configuration from runlevel 5
+/etc/rc5.d/
