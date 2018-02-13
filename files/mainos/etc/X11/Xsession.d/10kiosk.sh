@@ -36,8 +36,3 @@ if [[ -e $TMPDIR/taptap ]] ; then
 	fi 
 fi
 
-#Run a simple splash in x for reduce black screen --> #722
-if [ ! -z "$FASTBOOT" ] && [ -x /usr/bin/xsplash ]; then
-    DISPLAY=:0 /usr/bin/xsplash &
-fi;
-
