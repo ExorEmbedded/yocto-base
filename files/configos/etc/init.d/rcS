@@ -92,7 +92,7 @@ echo -ne "\ec"  > /dev/tty1
 export TMPDIR=/mnt/.psplash
 mkdir $TMPDIR
 mount -t tmpfs -o rw,size=40k tmpfs $TMPDIR
-/usr/bin/psplash --angle $rotation &
+/usr/bin/psplash --angle $rotation --infinite-progress &
 
 psplash-write "PROGRESS 0"
 
