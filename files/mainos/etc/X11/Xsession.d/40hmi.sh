@@ -79,5 +79,6 @@ else
         echo "HMI: KIOSK" | logger
         # starts the desktop
         DISPLAY=:0 dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchHMI | logger
+        sleep 5;
     fi
 fi
