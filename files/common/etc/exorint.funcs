@@ -169,13 +169,13 @@ exorint_iface_metric()
     if [ $iface = "br0" ]; then
        metric=50
     elif [ $iface = $WAN_INTERFACE ]; then
-       metric=90
+       metric=60
     elif echo $iface | grep -E -q "^eth[0-9]+"; then
        metric=$(( 100 + (${iface:3}*10) )) # ethX has metric 100+10x
     elif [ $type -eq 512 ]; then  # ppp
-       metric=70
-    elif iw dev | grep -q "Interface $iface"; then
        metric=80
+    elif iw dev | grep -q "Interface $iface"; then
+       metric=70
     fi
 
     echo $metric
