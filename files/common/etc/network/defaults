@@ -1,2 +1,2 @@
 WAN_INTERFACE="eth0"
-LAN_INTERFACE="eth1"
+LAN_INTERFACES="`cd /sys/class/net && ls -d eth* | grep -v $WAN_INTERFACE`"
