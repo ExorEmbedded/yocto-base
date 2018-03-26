@@ -77,6 +77,9 @@ else
         sleep 20;
     else
         echo "HMI: KIOSK" | logger
+
+	dbus-send --print-reply --system --dest=com.exor.EPAD '/' com.exor.EPAD.updateCursorVisibility
+
         # starts the desktop
         DISPLAY=:0 dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchHMI | logger
         sleep 5;
