@@ -84,6 +84,5 @@ else
 
         # starts the desktop
         dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchHMI | logger
-        sleep 5;
     fi
 fi
