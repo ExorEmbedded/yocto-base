@@ -36,7 +36,6 @@ PATH="$PATH:/usr/bin:/usr/sbin:/bin:/sbin"
 # identical routes to multiple interfaces.
 
 SUFFIX="autoip"
-#METRIC=$((1000 + `cat "/sys/class/net/$2/ifindex" 2>/dev/null || echo 0`))
 METRIC=$(exorint_iface_metric "$2")
 
 if [ -x /bin/ip -o -x /sbin/ip ] ; then
@@ -47,6 +46,7 @@ if [ -x /bin/ip -o -x /sbin/ip ] ; then
         BIND)
             ip addr add "$3"/16 brd 169.254.255.255 label "$2:$SUFFIX" scope link dev "$2"
             ip route add default dev "$2" metric "$METRIC" scope link ||:
+            exorint_iface_metric_apply "$2"
             ;;
 
         CONFLICT|UNBIND|STOP)
