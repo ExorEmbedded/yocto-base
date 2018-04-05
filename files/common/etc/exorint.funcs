@@ -189,6 +189,7 @@ exorint_iface_metric_apply()
     local _gw
     local _mask
     local _metric
+    local _args
 
     [ -z $metric ] && metric=$(exorint_iface_metric $iface)
 
@@ -201,7 +202,9 @@ exorint_iface_metric_apply()
         [ "$metric" = "$_metric" ] && continue
 
         ip route flush $_dest/$_mask dev $iface
-        ip route add $_dest/$_mask via $_gw dev $iface metric $metric
+        _args="add $_dest/$_mask dev $iface metric $metric"
+        [ "$_gw" != "0.0.0.0" ] && _args="$_args via $_gw"
+        ip route $_args
     done
 }
 
