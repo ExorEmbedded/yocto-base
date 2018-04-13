@@ -14,6 +14,11 @@ fi
 # Read the hw code from SEEPROM
 HW_CODE="$(dd if=/sys/class/i2c-dev/i2c-0/device/0-0054/eeprom bs=1 count=1 skip=4 2>/dev/null | hexdump -e '16/1 "%02d"' | xargs)"
 
+exorint_hwcode()
+{
+    echo -n "${HW_CODE}"
+}
+
 # e.g. "UN60"
 exorint_ver_bsp()
 {

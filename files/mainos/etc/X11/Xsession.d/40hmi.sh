@@ -28,7 +28,6 @@ fi
 if [ -e $TMPDIR/taptap ] || [ -z "$FASTBOOT" ] || [ $apps_to_launch -eq 0 ];
 then
     # This simulate triple steps fast boot --> Superfast
-    . /etc/exorint.funcs
     carrier=$(exorint_ver_carrier)
     if [ "$carrier" == "WU16" ]
     then
@@ -85,4 +84,12 @@ else
         # starts the desktop
         dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchHMI | logger
     fi
+fi
+
+# force xsplash quit only if overlay is used - otherwise other windows will be
+# stacked on top and the process will die after RUN_TIME_MS (default 2 minutes)
+# if we have us03 scenarios with excessive black we can consider improving this [#1004]
+if [ -e /dev/fb1 ]; then
+    sleep 2
+    xsplash QUIT
 fi
