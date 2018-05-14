@@ -404,7 +404,7 @@ cmd_config()
     if [ "${regStat}" = "5" ]; then
         log "Roaming enabled"
         local roamingEnabled="$(/usr/bin/sys_params -r services/mobile/roamingEnabled)"
-        [ "${roamingEnabled}" != "true" ] && notify_error ${ERR_ROAMINGBLOCKED}
+        [ "${roamingEnabled}" = "false" ] && notify_error ${ERR_ROAMINGBLOCKED}
     fi
 
     log "Setting speed"
