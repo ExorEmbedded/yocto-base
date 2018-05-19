@@ -9,6 +9,7 @@ ln -s /proc/self/fd     			/dev/fd
 # Source defaults.
 . /etc/default/rcS
 . /etc/exorint.funcs
+carrier=$(exorint_ver_carrier)
 
 JMLAUNCHER_FILE="/mnt/data/hmi/jmlauncher.xml"
 
@@ -28,7 +29,6 @@ fi
 if [ -e $TMPDIR/taptap ] || [ -z "$FASTBOOT" ] || [ $apps_to_launch -eq 0 ];
 then
     # This simulate triple steps fast boot --> Superfast
-    carrier=$(exorint_ver_carrier)
     if [ "$carrier" == "WU16" ]
     then
         /etc/init.d/ifplugd start
@@ -101,3 +101,8 @@ if [ $FASTBOOT_KIOSK -eq 1 ]; then
     dbus-send --system --print-reply --dest=com.exor.EPAD '/' com.exor.EPAD.updateCursorVisibility
     sleep 20
 fi
+
+if [ "$carrier" == "WU16" ]
+then
+    /etc/init.d/dbus-1 start
+fi;
