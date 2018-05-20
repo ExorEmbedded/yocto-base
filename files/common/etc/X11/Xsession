@@ -9,8 +9,12 @@ export HOME_VOLATILE
 
 #Run a simple splash in x for reduce black screen --> #722
 if [ -x /usr/bin/xsplash ]; then
-    DISPLAY=:0 /usr/bin/xsplash &
-fi;
+    XSPLASH_OPTS=""
+    if [ "$(sys_params services/splash_bar/enabled)" = "false" ]; then
+        XSPLASH_OPTS="$XSPLASH_OPTS --no-progress-bar"
+    fi
+    DISPLAY=:0 /usr/bin/xsplash $XSPLASH_OPTS &
+fi
 
 if [ -f $HOME/.profile ]; then
  . $HOME/.profile

@@ -134,6 +134,10 @@ fi;
 if [ -x /usr/bin/xsplash ]; then
     #No close psplash when Xorg starts, is closed by xstarts
     psplash_opts="--no-console-switch --infinite-progress"
+
+    if [ "$(sys_params services/splash_bar/enabled)" = "false" ]; then
+        psplash_opts="$psplash_opts --no-progress-bar"
+    fi
 fi;
 
 /usr/bin/psplash --angle $rotation $psplash_opts &
