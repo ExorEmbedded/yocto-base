@@ -21,12 +21,7 @@ mount -t tmpfs -o rw tmpfs /var/volatile
 mkdir -p /var/volatile/tmp
 mkdir -p $PRESERVEDPATH
 
-rotation=0
-[ -e /etc/rotation ] && read rotation < /etc/rotation
-
-# Restart psplash with --notouch
-psplash-write "QUIT"
-sleep 2
+# Start psplash with --notouch
 /usr/bin/psplash --notouch --angle $rotation &
 
 currProgress=0
@@ -222,10 +217,9 @@ if [ $? -gt 1 ]; then
         umount /var/volatile
         psplash-write "PROGRESS 100"
 
-        # Restart psplash
+        # Close psplash
         psplash-write "QUIT"
         sleep 2
-        /usr/bin/psplash --angle $rotation &
         return
 fi
 
@@ -297,10 +291,9 @@ psplash-write "PROGRESS 100"
 
 umount /var/volatile
 
-# Restart psplash 
+# Close psplash
 psplash-write "QUIT"
 sleep 2
-/usr/bin/psplash --angle $rotation &
 
 # This script is sourced by /etc/init.d/rcS - don't exit
 #exit 0

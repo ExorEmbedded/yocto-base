@@ -99,15 +99,9 @@ if [ ! -d '/etc/init.d' ]; then
    rm -rf $ETCTMPMNT
 fi
 
-# Post-processing - setup other links to factory (global settings)
-[ ! -L /etc/pointercal.xinput ] && ln -sf $FACTORYTMPMNT/etc/pointercal.xinput /etc/pointercal.xinput
-[ ! -L /etc/rotation ] && ln -sf $FACTORYTMPMNT/etc/rotation /etc/rotation
-[ ! -L /etc/X11/xorg.conf.d/x11-rotate.conf ] && mkdir -p /etc/X11/xorg.conf.d && \
-    ln -sf $FACTORYTMPMNT/etc/X11/xorg.conf.d/x11-rotate.conf /etc/X11/xorg.conf.d/x11-rotate.conf
-
 # Read screen rotation settings
 rotation=0
-[ -s /etc/rotation ] && read rotation < /etc/rotation
+[ -f /mnt/factory/etc/rotation ] && read rotation < /mnt/factory/etc/rotation
 
 # Disable console on framebuffer to avoid showing console output and
 # blinking when starting X
@@ -123,6 +117,19 @@ echo -ne "\ec"  > /dev/tty1
 export TMPDIR=/mnt/.psplash
 mkdir $TMPDIR
 mount -t tmpfs -o rw,size=40k /tmpfs $TMPDIR
+
+# Get etc and bsp versions
+etcVers="$( cat /etc/migrations/version )"
+bspVers="$( cat /boot/version )"
+
+# If versions do not match do postupdate
+if [ ! "$etcVers" = "$bspVers" ]; then
+   mkdir -p $ROOTTMPMNT
+   mount -o bind / $ROOTTMPMNT
+   . $ROOTTMPMNT/etc/migrations/postupdate.sh
+   umount -l $ROOTTMPMNT
+   rm -r $ROOTTMPMNT
+fi
 
 if [ -x /usr/bin/setoverlay ]; then
     #if we can use overlay, FB1 is used for psplash
@@ -142,23 +149,16 @@ fi;
 
 /usr/bin/psplash --angle $rotation $psplash_opts &
 
+# Post-processing - setup other links to factory (global settings)
+[ ! -L /etc/pointercal.xinput ] && ln -sf $FACTORYTMPMNT/etc/pointercal.xinput /etc/pointercal.xinput
+[ ! -L /etc/rotation ] && ln -sf $FACTORYTMPMNT/etc/rotation /etc/rotation
+[ ! -L /etc/X11/xorg.conf.d/x11-rotate.conf ] && mkdir -p /etc/X11/xorg.conf.d && \
+    ln -sf $FACTORYTMPMNT/etc/X11/xorg.conf.d/x11-rotate.conf /etc/X11/xorg.conf.d/x11-rotate.conf
+
 # Check if shadow in final etc partition is a link to a valid file 
 if [ ! -L /etc/'shadow' ]; then
   ln -s -b $FACTORYTMPMNT'shadow' /etc/'shadow'
   sync
-fi
-
-# Get etc and bsp versions
-etcVers="$( cat /etc/migrations/version )"
-bspVers="$( cat /boot/version )"
-
-# If versions do not match do postupdate
-if [ ! "$etcVers" = "$bspVers" ]; then
-   mkdir -p $ROOTTMPMNT
-   mount -o bind / $ROOTTMPMNT
-   . $ROOTTMPMNT/etc/migrations/postupdate.sh
-   umount -l $ROOTTMPMNT
-   rm -r $ROOTTMPMNT
 fi
 
 if [ ! -e /etc/configured -a -e $FACTORYTMPMNT/machine.ini ]; then
