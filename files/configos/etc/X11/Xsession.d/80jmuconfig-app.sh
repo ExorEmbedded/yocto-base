@@ -2,6 +2,13 @@
 
 JMUCONFIG_TESTURL="localhost:3000/api/v1/system"
 
+. /etc/exorint.funcs
+carrier=$(exorint_ver_carrier)
+if [ "$carrier" == "WU16" ]
+then
+    /etc/init.d/dbus-1 start
+fi
+
 jmuconfig_wait()
 {
     while true; do
@@ -24,3 +31,5 @@ jmuconfig_wait()
     reboot -f
 
 } &
+
+sleep 20
