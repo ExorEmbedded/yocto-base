@@ -9,6 +9,7 @@ ln -s /proc/self/fd     			/dev/fd
 # Source defaults.
 . /etc/default/rcS
 . /etc/exorint.funcs
+carrier=$(exorint_ver_carrier)
 
 JMLAUNCHER_FILE="/mnt/data/hmi/jmlauncher.xml"
 
@@ -27,9 +28,7 @@ fi
 
 if [ -e $TMPDIR/taptap ] || [ -z "$FASTBOOT" ] || [ $apps_to_launch -eq 0 ];
 then
-    // This simulate triple steps fast boot --> Superfast
-    . /etc/exorint.funcs
-    carrier=$(exorint_ver_carrier)
+    # This simulate triple steps fast boot --> Superfast
     if [ "$carrier" == "WU16" ]
     then
         /etc/init.d/ifplugd start
@@ -54,7 +53,8 @@ if [[ -e /etc/nokiosk ]] ; then
 	# starts the HMI
 	#rm /etc/nokiosk # next boot will reset to default kiosk mode
 	mv /etc/nokiosk /var/run/
-	DISPLAY=:0 dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchDesktop
+	dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchDesktop
+	dbus-send --system --print-reply --dest=com.exor.EPAD '/' com.exor.EPAD.updateCursorVisibility
 else
     if [ ! -z "$FASTBOOT" ] && [ -e "/mnt/data/hmi/$FASTBOOT/run.sh" ] && [ "$apps_to_launch" -eq "1" ] && [ "$FASTBOOT" == "$app_to_launch_name" ]; then
         echo "HMI: KIOSK - FASTBOOT" | logger
@@ -75,9 +75,19 @@ else
         cd /mnt/data/hmi/"$FASTBOOT" || return
         ( ./run.sh -kiosk |& logger ) & # ticket 682
         sleep 20;
+        dbus-send --system --print-reply --dest=com.exor.EPAD '/' com.exor.EPAD.updateCursorVisibility
     else
         echo "HMI: KIOSK" | logger
+
+        dbus-send --system --print-reply --dest=com.exor.EPAD '/' com.exor.EPAD.updateCursorVisibility
+
         # starts the desktop
-        DISPLAY=:0 dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchHMI | logger
+        dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchHMI | logger
+        sleep 5;
     fi
 fi
+
+if [ "$carrier" == "WU16" ]
+then
+    /etc/init.d/dbus-1 start
+fi;

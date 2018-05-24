@@ -2,18 +2,6 @@
 
 echo "HMI: booting!" | logger
 
-export TMPDIR=/mnt/.psplash/
-# Source defaults.
-. /etc/default/rcS
-
-if [ ! -z "$FASTBOOT" ] && [ -d "/mnt/data/hmi/$FASTBOOT/deploy" ] && [ ! -e $TMPDIR/taptap ] ; then
-    #Nothing to do
-    echo "start X11 - 10kiosk.sh" | logger
-else
-    # starts EPAD service
-    dbus-send --system --dest=com.exor.EPAD '/' com.exor.EPAD.ping
-fi
-
 if [[ -e $TMPDIR/taptap ]] ; then
 	while ( (cat $TMPDIR/taptap | grep wait) > /dev/null 2>&1 ) ; do
 		echo "HMI: waiting tapttap" | logger
@@ -27,12 +15,6 @@ if [[ -e $TMPDIR/taptap ]] ; then
 			rm /etc/pointercal.xinput
 			echo "HMI: force pointer calibration" | logger
 		fi
-
-		if ( (cat $TMPDIR/taptap | grep disable-kiosk) > /dev/null 2>&1 ) ; then
-			# start no-kiosk mode
-			echo "HMI: nokiosk mode" | logger
-			touch /etc/nokiosk
-		fi
-	fi 
+	fi
 fi
 

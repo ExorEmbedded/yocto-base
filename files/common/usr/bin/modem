@@ -277,6 +277,9 @@ cmd_config()
 
     wrap_send send_expect "${dev}" "ATE0" "^(atE0|OK)" "1" >/dev/null
 
+    out=$(wrap_send send_expect "${dev}" "AT+CGSN" "^[0-9]+")
+    [ "${out}" = "" ] || epad_set_volatile "services/mobile/info/imei" "${out}"
+
     out=$(wrap_send send_expect "${dev}" "AT+QSIMSTAT?" "^\+QSIMSTAT:" | cut -s -d ',' -f 2)
     [ "${out}" = "1" ] || notify_error ${ERR_SIMMISSING}
 

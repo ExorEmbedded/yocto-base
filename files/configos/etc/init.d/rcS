@@ -58,6 +58,26 @@ if [ $? -ne 0 ]; then
    mount -t ext4 -o ro $FACTORYPARTITION $FACTORYTMPMNT
 fi
 
+mkdir $ETCTMPMNT
+
+# creates a temporary rambased etcfs
+mount -o bind /etc $ETCTMPMNT
+# mount a volatile temporary fs in /etc copying files from original /etc
+mount -t tmpfs -o rw,size=16M tmpfs /etc
+cp -a $ETCTMPMNT/* /etc/
+umount $ETCTMPMNT
+rmdir $ETCTMPMNT
+
+# Post-processing - setup other links to factory (global settings)
+[ ! -L /etc/pointercal.xinput ] && ln -sf $FACTORYTMPMNT/etc/pointercal.xinput /etc/pointercal.xinput
+[ ! -L /etc/rotation ] && ln -sf $FACTORYTMPMNT/etc/rotation /etc/rotation
+[ ! -L /etc/X11/xorg.conf.d/x11-rotate.conf ] && mkdir -p /etc/X11/xorg.conf.d && \
+    ln -sf $FACTORYTMPMNT/etc/X11/xorg.conf.d/x11-rotate.conf /etc/X11/xorg.conf.d/x11-rotate.conf
+
+# Read screen rotation settings
+rotation=0
+[ -s /etc/rotation ] && read rotation < /etc/rotation
+
 # Disable console on framebuffer to avoid showing console output and
 # blinking when starting X
 echo 0 > /sys/class/vtconsole/vtcon1/bind
@@ -72,19 +92,9 @@ echo -ne "\ec"  > /dev/tty1
 export TMPDIR=/mnt/.psplash
 mkdir $TMPDIR
 mount -t tmpfs -o rw,size=40k tmpfs $TMPDIR
-/usr/bin/psplash &
+/usr/bin/psplash --angle $rotation --infinite-progress &
 
 psplash-write "PROGRESS 0"
-
-mkdir $ETCTMPMNT
-
-# creates a temporary rambased etcfs
-mount -o bind /etc $ETCTMPMNT
-# mount a volatile temporary fs in /etc copying files from original /etc
-mount -t tmpfs -o rw,size=16M tmpfs /etc
-cp -a $ETCTMPMNT/* /etc/
-umount $ETCTMPMNT
-rmdir $ETCTMPMNT
 
 # Copy /etc/shadow from etc to the factory partition if not already there
 if [ ! -e $FACTORYTMPMNT'shadow' ] ; then
@@ -115,12 +125,6 @@ fi
 [ -e $CMDFILE ] && /etc/updateCmd.sh
 
 exorint_data_quotaon $DATATMPMNT $QUOTA_DATA_RESERVED
-
-# Post-processing - setup other links to factory (global settings)
-[ ! -L /etc/pointercal.xinput ] && ln -sf $FACTORYTMPMNT/etc/pointercal.xinput /etc/pointercal.xinput
-[ ! -L /etc/rotation ] && ln -sf $FACTORYTMPMNT/etc/rotation /etc/rotation
-[ ! -L /etc/X11/xorg.conf.d/x11-rotate.conf ] && mkdir -p /etc/X11/xorg.conf.d && \
-    ln -sf $FACTORYTMPMNT/etc/X11/xorg.conf.d/x11-rotate.conf /etc/X11/xorg.conf.d/x11-rotate.conf
 
 # Update splash progress bar
 PROGRESS_STATE=10

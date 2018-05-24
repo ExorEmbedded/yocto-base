@@ -86,9 +86,22 @@ fi
 
 mount -t ext4 $ETCPARTITION /etc
 
+# Verify etc partition is properly populated (if no, copy original /etc to it)
+if [ ! -d '/etc/init.d' ]; then
+   # The partition does not contain a valid etc folder
+   umount -l /etc
+   mke2fs -T ext4 -L "etc" $ETCPARTITION
+   mkdir $ETCTMPMNT
+   mount -t ext4 $ETCPARTITION $ETCTMPMNT
+   cp -a /etc/. $ETCTMPMNT
+   sync
+   mount --move $ETCTMPMNT /etc
+   rm -rf $ETCTMPMNT
+fi
+
 # Read screen rotation settings
 rotation=0
-[ -s /etc/rotation ] && read rotation < /etc/rotation
+[ -f /mnt/factory/etc/rotation ] && read rotation < /mnt/factory/etc/rotation
 
 # Disable console on framebuffer to avoid showing console output and
 # blinking when starting X
@@ -105,39 +118,6 @@ export TMPDIR=/mnt/.psplash
 mkdir $TMPDIR
 mount -t tmpfs -o rw,size=40k /tmpfs $TMPDIR
 
-if [ ! -z "$FASTBOOT" ] && [ -x /usr/bin/setoverlay ]; then
-    #if we can use overlay, FB1 is used for psplash
-    export FBDEV=/dev/fb1;
-    #Create overlay!
-    /usr/bin/setoverlay;
-fi;
-
-if [ ! -z "$FASTBOOT" ] && [ -x /usr/bin/xsplash ]; then
-    #No close psplash when Xorg starts, is closed by xstarts
-    psplash_opts='--no-console-switch'
-fi;
-
-/usr/bin/psplash --angle $rotation $psplash_opts &
-
-# Verify etc partition is properly populated (if no, copy original /etc to it)
-if [ ! -d '/etc/init.d' ]; then
-   # The partition does not contain a valid etc folder
-   umount -l /etc
-   mke2fs -T ext4 -L "etc" $ETCPARTITION
-   mkdir $ETCTMPMNT
-   mount -t ext4 $ETCPARTITION $ETCTMPMNT
-   cp -a /etc/. $ETCTMPMNT
-   sync
-   mount --move $ETCTMPMNT /etc
-   rm -rf $ETCTMPMNT
-fi
-
-# Check if shadow in final etc partition is a link to a valid file 
-if [ ! -L /etc/'shadow' ]; then
-  ln -s -b $FACTORYTMPMNT'shadow' /etc/'shadow'
-  sync
-fi
-
 # Get etc and bsp versions
 etcVers="$( cat /etc/migrations/version )"
 bspVers="$( cat /boot/version )"
@@ -149,6 +129,36 @@ if [ ! "$etcVers" = "$bspVers" ]; then
    . $ROOTTMPMNT/etc/migrations/postupdate.sh
    umount -l $ROOTTMPMNT
    rm -r $ROOTTMPMNT
+fi
+
+if [ -x /usr/bin/setoverlay ]; then
+    #if we can use overlay, FB1 is used for psplash
+    export FBDEV=/dev/fb1;
+    #Create overlay!
+    /usr/bin/setoverlay;
+fi;
+
+if [ -x /usr/bin/xsplash ]; then
+    #No close psplash when Xorg starts, is closed by xstarts
+    psplash_opts="--no-console-switch --infinite-progress"
+
+    if [ "$(sys_params services/splash_bar/enabled)" = "false" ]; then
+        psplash_opts="$psplash_opts --no-progress-bar"
+    fi
+fi;
+
+/usr/bin/psplash --angle $rotation $psplash_opts &
+
+# Post-processing - setup other links to factory (global settings)
+[ ! -L /etc/pointercal.xinput ] && ln -sf $FACTORYTMPMNT/etc/pointercal.xinput /etc/pointercal.xinput
+[ ! -L /etc/rotation ] && ln -sf $FACTORYTMPMNT/etc/rotation /etc/rotation
+[ ! -L /etc/X11/xorg.conf.d/x11-rotate.conf ] && mkdir -p /etc/X11/xorg.conf.d && \
+    ln -sf $FACTORYTMPMNT/etc/X11/xorg.conf.d/x11-rotate.conf /etc/X11/xorg.conf.d/x11-rotate.conf
+
+# Check if shadow in final etc partition is a link to a valid file 
+if [ ! -L /etc/'shadow' ]; then
+  ln -s -b $FACTORYTMPMNT'shadow' /etc/'shadow'
+  sync
 fi
 
 if [ ! -e /etc/configured -a -e $FACTORYTMPMNT/machine.ini ]; then
@@ -192,12 +202,6 @@ exorint_data_quotaon $DATATMPMNT $QUOTA_DATA_RESERVED
 # Move /home to data partition
 [ ! -d "$DATATMPMNT/home" ] && cp -rp /home $DATATMPMNT
 mount -o bind $DATATMPMNT/home /home
-
-# Post-processing - setup other links to factory (global settings)
-[ ! -L /etc/pointercal.xinput ] && ln -sf $FACTORYTMPMNT/etc/pointercal.xinput /etc/pointercal.xinput
-[ ! -L /etc/rotation ] && ln -sf $FACTORYTMPMNT/etc/rotation /etc/rotation
-[ ! -L /etc/X11/xorg.conf.d/x11-rotate.conf ] && mkdir -p /etc/X11/xorg.conf.d && \
-    ln -sf $FACTORYTMPMNT/etc/X11/xorg.conf.d/x11-rotate.conf /etc/X11/xorg.conf.d/x11-rotate.conf
 
 # Update splash progress bar
 PROGRESS_STATE=10

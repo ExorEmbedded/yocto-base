@@ -169,13 +169,13 @@ exorint_iface_metric()
     if [ $iface = "br0" ]; then
        metric=50
     elif [ $iface = $WAN_INTERFACE ]; then
-       metric=90
+       metric=60
     elif echo $iface | grep -E -q "^eth[0-9]+"; then
        metric=$(( 100 + (${iface:3}*10) )) # ethX has metric 100+10x
     elif [ $type -eq 512 ]; then  # ppp
-       metric=70
-    elif iw dev | grep -q "Interface $iface"; then
        metric=80
+    elif iw dev | grep -q "Interface $iface"; then
+       metric=70
     fi
 
     echo $metric
@@ -189,6 +189,7 @@ exorint_iface_metric_apply()
     local _gw
     local _mask
     local _metric
+    local _args
 
     [ -z $metric ] && metric=$(exorint_iface_metric $iface)
 
@@ -201,7 +202,9 @@ exorint_iface_metric_apply()
         [ "$metric" = "$_metric" ] && continue
 
         ip route flush $_dest/$_mask dev $iface
-        ip route add $_dest/$_mask via $_gw dev $iface metric $metric
+        _args="add $_dest/$_mask dev $iface metric $metric"
+        [ "$_gw" != "0.0.0.0" ] && _args="$_args via $_gw"
+        ip route $_args
     done
 }
 
