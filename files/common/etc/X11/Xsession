@@ -13,7 +13,7 @@ if [ -x /usr/bin/xsplash ]; then
     if [ "$(sys_params services/splash_bar/enabled)" = "false" ]; then
         XSPLASH_OPTS="$XSPLASH_OPTS --no-progress-bar"
     fi
-    DISPLAY=:0 /usr/bin/xsplash $XSPLASH_OPTS &
+    DISPLAY=:0 TMPDIR=/mnt/.psplash /usr/bin/xsplash $XSPLASH_OPTS &
 fi
 
 if [ -f $HOME/.profile ]; then
