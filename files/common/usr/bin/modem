@@ -27,7 +27,7 @@
 
 MODEM_BAUD=3000000
 MODEM_PID="/var/run/modem.pid"  # this script is alive only while starting
-MODEM_RUNNING="/var/run/modem.running"  # between start and stop
+MODEM_STATE="/var/run/modem.state"
 MODEM_IFACE="ppp0"
 MODEM_STARTING=0
 
@@ -441,9 +441,9 @@ cmd_off()
 
 cmd_start()
 {
-    [ -e "${MODEM_RUNNING}" ] && info "Already running" && exit 0
+    [ -e "${MODEM_STATE}" ] && info "Already running" && exit 0
 
-    touch "${MODEM_RUNNING}"
+    echo "starting" > "${MODEM_STATE}"
     MODEM_STARTING=1
     echo $$ > "${MODEM_PID}"
 
@@ -482,16 +482,15 @@ cmd_start()
 
 cmd_stop()
 {
-    [ ! -e "${MODEM_RUNNING}" ] && info "Already stopped" && exit 0
+    [ ! -e "${MODEM_STATE}" ] && info "Already stopped" && exit 0
+
+    echo "stopping" > "${MODEM_STATE}"
 
     local dev=$(cmd_dev)
     if [ -z ${dev} ]; then
         info "No PLCM09 present"
         return 0
     fi
-
-    # make sure state is idle from now onwards
-    rm -f "${MODEM_RUNNING}"
 
     # Reset all mobile volatile info and state
     epad_set_volatile "services/mobile/info/signal" ""
@@ -506,6 +505,8 @@ cmd_stop()
     sleep 1
 
     cmd_off ${dev}
+
+    rm -f "${MODEM_STATE}"
 }
 
 cmd_restart()
@@ -526,9 +527,10 @@ cmd_status()
         echo "connected;${rx}/${tx}"
         return 3
     fi
-    [ ! -e "${MODEM_RUNNING}" ] && echo "idle" && return 0
+    [ ! -e "${MODEM_STATE}" ] && echo "idle" && return 0
     [ -e "${MODEM_PID}" ] && echo "starting" && return 1
     pidof pppd >/dev/null && echo "running" && return 2
+    [ "$(cat ${MODEM_STATE} 2>/dev/null)" = "stopping" ] && return 10
     echo "error" && return 99
 }
 
