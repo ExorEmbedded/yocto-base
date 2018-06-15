@@ -39,6 +39,7 @@ ERR_SUCCESS=0
 ERR_GENERICERROR=1
 ERR_SYSTEMERROR=10
 ERR_MODEMNOTFOUND=100
+ERR_MODEMBUSY=101
 ERR_MODEMCOMM=110
 ERR_MODEMTIMEOUT=120
 ERR_MODEMERROR=130
@@ -468,11 +469,13 @@ cmd_start()
         cmd_off ${dev}
     fi
 
-    cmd_on ${dev}
-    [ $? -eq 0 ] || notify_error ${ERR_MODEMCOMM}
-
     local com=$(cmd_com)
     [ -e ${com} ] || notify_error ${ERR_MODEMCOMM}
+
+    lsof ${com} >/dev/null && notify_error ${ERR_MODEMBUSY}
+
+    cmd_on ${dev}
+    [ $? -eq 0 ] || notify_error ${ERR_MODEMCOMM}
 
     cmd_config ${com}
 
