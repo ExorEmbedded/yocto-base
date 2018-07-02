@@ -167,7 +167,6 @@ wrap_send()
     local rc=$?
     [ ${rc} -eq 0 ] && return 0
 
-    modem off
     case ${rc} in
         1)
             notify_error ${ERR_MODEMTIMEOUT}
