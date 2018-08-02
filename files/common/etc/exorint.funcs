@@ -71,7 +71,7 @@ exorint_ver_type()
         PLCM)
             echo -n "ROUTER"
             ;;
-        NA16)
+        NA16|PA18)
             echo -n "DEVICE"
             ;;
         *)
