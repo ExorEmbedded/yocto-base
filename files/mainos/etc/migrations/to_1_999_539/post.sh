@@ -12,16 +12,19 @@ SYSPARAMSCMD="/usr/bin/sys_params"
 grep -q '"enabled": true' $PRESERVEDPATH/etc/jmuconfig/network.json || exit 0
 
 # enable with new implementation (EPAD System Parameters)
-$SYSPARAMSCMD -w network/wifi/nic/wifi0/autostart "true"
-$SYSPARAMSCMD -w network/wifi/autostartNics "wifi0"
+$SYSPARAMSCMD -w network/wifi/autostartInterfaces "wifi0"
+
+# interfaces are stored in an array for compatibility with JSON REST API
+$SYSPARAMSCMD -w network/wifi/interfaces/size "1"
+$SYSPARAMSCMD -w network/wifi/interfaces/1/enabled "true"
 
 CHOSEN="/tmp/post.sh-chosen"
 grep -A 6 '"chosen":' $PRESERVEDPATH/etc/jmuconfig/network.json > $CHOSEN
 
-$SYSPARAMSCMD -w network/wifi/nic/wifi0/net/ssid "`grep '"ssid":' $CHOSEN | cut -d '"' -f 4`"
-$SYSPARAMSCMD -w network/wifi/nic/wifi0/net/bssid "`grep '"bssid":' $CHOSEN | cut -d '"' -f 4`"
-$SYSPARAMSCMD -w network/wifi/nic/wifi0/net/security "`grep '"security":' $CHOSEN | cut -d '"' -f 4`"
-$SYSPARAMSCMD -w network/wifi/nic/wifi0/net/psk "`grep '"psk":' $CHOSEN | cut -d '"' -f 4`"
+$SYSPARAMSCMD -w network/wifi/interfaces/1/net/ssid "`grep '"ssid":' $CHOSEN | cut -d '"' -f 4`"
+$SYSPARAMSCMD -w network/wifi/interfaces/1/net/bssid "`grep '"bssid":' $CHOSEN | cut -d '"' -f 4`"
+$SYSPARAMSCMD -w network/wifi/interfaces/1/net/security "`grep '"security":' $CHOSEN | cut -d '"' -f 4`"
+$SYSPARAMSCMD -w network/wifi/interfaces/1/net/psk "`grep '"psk":' $CHOSEN | cut -d '"' -f 4`"
 
 cp /etc/EPAD/system.ini $PRESERVEDPATH/etc/EPAD/
 rm $PRESERVEDPATH/etc/jmuconfig/network.json
