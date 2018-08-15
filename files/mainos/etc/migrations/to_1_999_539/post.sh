@@ -21,10 +21,10 @@ $SYSPARAMSCMD -w network/wifi/interfaces/1/enabled "true"
 CHOSEN="/tmp/post.sh-chosen"
 grep -A 6 '"chosen":' $PRESERVEDPATH/etc/jmuconfig/network.json > $CHOSEN
 
-$SYSPARAMSCMD -w network/wifi/interfaces/1/net/ssid "`grep '"ssid":' $CHOSEN | cut -d '"' -f 4`"
-$SYSPARAMSCMD -w network/wifi/interfaces/1/net/bssid "`grep '"bssid":' $CHOSEN | cut -d '"' -f 4`"
-$SYSPARAMSCMD -w network/wifi/interfaces/1/net/security "`grep '"security":' $CHOSEN | cut -d '"' -f 4`"
-$SYSPARAMSCMD -w network/wifi/interfaces/1/net/psk "`grep '"psk":' $CHOSEN | cut -d '"' -f 4`"
+$SYSPARAMSCMD -w network/wifi/interfaces/1/chosen/ssid "`grep '"ssid":' $CHOSEN | cut -d '"' -f 4`"
+$SYSPARAMSCMD -w network/wifi/interfaces/1/chosen/bssid "`grep '"bssid":' $CHOSEN | cut -d '"' -f 4`"
+$SYSPARAMSCMD -w network/wifi/interfaces/1/chosen/security "`grep '"security":' $CHOSEN | cut -d '"' -f 4`"
+$SYSPARAMSCMD -w network/wifi/interfaces/1/chosen/psk "`grep '"psk":' $CHOSEN | cut -d '"' -f 4`"
 
 cp /etc/EPAD/system.ini $PRESERVEDPATH/etc/EPAD/
 rm $PRESERVEDPATH/etc/jmuconfig/network.json
