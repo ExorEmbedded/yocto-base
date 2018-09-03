@@ -28,6 +28,7 @@
 MODEM_BAUD=3000000
 MODEM_PID="/var/run/modem.pid"  # this script is alive only while starting
 MODEM_STATE="/var/run/modem.state"
+MODEM_INITED="/var/run/modem.inited"
 MODEM_IFACE="ppp0"
 MODEM_STARTING=0
 
@@ -73,7 +74,6 @@ cmd_help()
     echo "Usage: $(basename $0) [OPTS] CMD, where CMD can be:"
     echo
     echo "              start           start modem (if detected)"
-    echo "                              OPTS: -x    reset before start"
     echo "              stop            stop modem (if detected)"
     echo "              restart         restart modem"
     echo "              status          get modem status"
@@ -166,6 +166,8 @@ wrap_send()
     $@
     local rc=$?
     [ ${rc} -eq 0 ] && return 0
+
+    cmd_off
 
     case ${rc} in
         1)
@@ -463,9 +465,11 @@ cmd_start()
     fi
     log "Found PLCM09 on device: ${dev}"
 
-    # reset if requested
-    if [ ${RESET} -eq 1 ]; then
+    # reset first time only
+    if [ ! -e ${MODEM_INITED} ]; then
+        info "Resetting PLCM09 module"
         cmd_off ${dev}
+        touch ${MODEM_INITED}
     fi
 
     local com=$(cmd_com)
@@ -548,7 +552,6 @@ cleanup()
     [ "${MODEM_STARTING}" = "1" ] && rm -f "${MODEM_PID}"
 }
 
-RESET=0
 VERBOSE=0
 
 trap cleanup INT TERM EXIT
@@ -557,9 +560,6 @@ while getopts ":hxv" opt; do
       case ${opt} in
         h)
             cmd_help
-            ;;
-        x)
-            RESET=1
             ;;
         v)
             VERBOSE=1
