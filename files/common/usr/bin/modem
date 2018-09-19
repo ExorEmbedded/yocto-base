@@ -27,7 +27,8 @@
 
 MODEM_BAUD=3000000
 MODEM_PID="/var/run/modem.pid"  # this script is alive only while starting
-MODEM_RUNNING="/var/run/modem.running"  # between start and stop
+MODEM_STATE="/var/run/modem.state"
+MODEM_INITED="/var/run/modem.inited"
 MODEM_IFACE="ppp0"
 MODEM_STARTING=0
 
@@ -39,6 +40,7 @@ ERR_SUCCESS=0
 ERR_GENERICERROR=1
 ERR_SYSTEMERROR=10
 ERR_MODEMNOTFOUND=100
+ERR_MODEMBUSY=101
 ERR_MODEMCOMM=110
 ERR_MODEMTIMEOUT=120
 ERR_MODEMERROR=130
@@ -72,7 +74,6 @@ cmd_help()
     echo "Usage: $(basename $0) [OPTS] CMD, where CMD can be:"
     echo
     echo "              start           start modem (if detected)"
-    echo "                              OPTS: -x    reset before start"
     echo "              stop            stop modem (if detected)"
     echo "              restart         restart modem"
     echo "              status          get modem status"
@@ -166,7 +167,8 @@ wrap_send()
     local rc=$?
     [ ${rc} -eq 0 ] && return 0
 
-    modem off
+    cmd_off
+
     case ${rc} in
         1)
             notify_error ${ERR_MODEMTIMEOUT}
@@ -441,9 +443,9 @@ cmd_off()
 
 cmd_start()
 {
-    [ -e "${MODEM_RUNNING}" ] && info "Already running" && exit 0
+    [ -e "${MODEM_STATE}" ] && info "Already running" && exit 0
 
-    touch "${MODEM_RUNNING}"
+    echo "starting" > "${MODEM_STATE}"
     MODEM_STARTING=1
     echo $$ > "${MODEM_PID}"
 
@@ -463,16 +465,20 @@ cmd_start()
     fi
     log "Found PLCM09 on device: ${dev}"
 
-    # reset if requested
-    if [ ${RESET} -eq 1 ]; then
+    # reset first time only
+    if [ ! -e ${MODEM_INITED} ]; then
+        info "Resetting PLCM09 module"
         cmd_off ${dev}
+        touch ${MODEM_INITED}
     fi
-
-    cmd_on ${dev}
-    [ $? -eq 0 ] || notify_error ${ERR_MODEMCOMM}
 
     local com=$(cmd_com)
     [ -e ${com} ] || notify_error ${ERR_MODEMCOMM}
+
+    lsof ${com} >/dev/null && notify_error ${ERR_MODEMBUSY}
+
+    cmd_on ${dev}
+    [ $? -eq 0 ] || notify_error ${ERR_MODEMCOMM}
 
     cmd_config ${com}
 
@@ -482,16 +488,15 @@ cmd_start()
 
 cmd_stop()
 {
-    [ ! -e "${MODEM_RUNNING}" ] && info "Already stopped" && exit 0
+    [ ! -e "${MODEM_STATE}" ] && info "Already stopped" && exit 0
+
+    echo "stopping" > "${MODEM_STATE}"
 
     local dev=$(cmd_dev)
     if [ -z ${dev} ]; then
         info "No PLCM09 present"
         return 0
     fi
-
-    # make sure state is idle from now onwards
-    rm -f "${MODEM_RUNNING}"
 
     # Reset all mobile volatile info and state
     epad_set_volatile "services/mobile/info/signal" ""
@@ -506,6 +511,8 @@ cmd_stop()
     sleep 1
 
     cmd_off ${dev}
+
+    rm -f "${MODEM_STATE}"
 }
 
 cmd_restart()
@@ -526,9 +533,10 @@ cmd_status()
         echo "connected;${rx}/${tx}"
         return 3
     fi
-    [ ! -e "${MODEM_RUNNING}" ] && echo "idle" && return 0
+    [ ! -e "${MODEM_STATE}" ] && echo "idle" && return 0
     [ -e "${MODEM_PID}" ] && echo "starting" && return 1
     pidof pppd >/dev/null && echo "running" && return 2
+    [ "$(cat ${MODEM_STATE} 2>/dev/null)" = "stopping" ] && return 10
     echo "error" && return 99
 }
 
@@ -544,7 +552,6 @@ cleanup()
     [ "${MODEM_STARTING}" = "1" ] && rm -f "${MODEM_PID}"
 }
 
-RESET=0
 VERBOSE=0
 
 trap cleanup INT TERM EXIT
@@ -553,9 +560,6 @@ while getopts ":hxv" opt; do
       case ${opt} in
         h)
             cmd_help
-            ;;
-        x)
-            RESET=1
             ;;
         v)
             VERBOSE=1
