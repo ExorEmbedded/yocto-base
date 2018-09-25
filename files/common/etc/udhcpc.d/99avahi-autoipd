@@ -9,6 +9,10 @@ trap '' HUP
 case "$1" in
 
 	leasefail)
+
+		# avahi-autoipd refuses to start if a valid address is already assigned
+		ip addr flush dev "$interface"
+
 		/usr/sbin/avahi-autoipd -wD $interface 2> /dev/null
 
 		# http://thread.gmane.org/gmane.linux.network.ifplugd.general/72
