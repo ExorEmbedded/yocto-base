@@ -108,22 +108,12 @@ exorint_hostname()
     return 0
 }
 
-# Gets SEEPROM bit value at given offset
+# Gets SEEPROM byte value at given offset (decimal)
 # Note: no checksumming for perfomance
-# $1 byte address offset
-# $2 bit mask offset
-exorint_seeprom_bit()
+# $1 byte offset
+exorint_seeprom_byte()
 {
-    local eeprom="$(dd if=/sys/bus/i2c/devices/0-0054/eeprom skip=${1} bs=1 count=1 2>/dev/null | hexdump -e '16/1 "%02x "')"
-    local roffset=$(( 1 << ( ${2} & 7) ))
-
-    if [ "$(( 0x$(echo ${eeprom}) & ${roffset} ))" -ne 0 ]; then
-       echo 1
-    else
-       echo 0
-    fi
-
-    return 0
+    echo "$(dd if=/sys/bus/i2c/devices/0-0054/eeprom skip=${1} bs=1 count=1 2>/dev/null | hexdump -e '"%d"')"
 }
 
 # Gets SWFlagArea bit value. Returns 1 and a 0 value on error or area not set (invalid checksum)
