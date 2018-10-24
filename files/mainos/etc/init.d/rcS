@@ -79,6 +79,7 @@ if [ ! -e $FACTORYTMPMNT'shadow' ] ; then
   mount -o remount,rw $FACTORYTMPMNT
   cp -a /etc/shadow $FACTORYTMPMNT'shadow'
   chgrp shadow $FACTORYTMPMNT'shadow'
+  touch $FACTORYTMPMNT'shadow.restore'
   mount -o remount,ro $FACTORYTMPMNT
 fi
 
@@ -170,6 +171,9 @@ elif [ ! -e /etc/network/interfaces -a -e $FACTORYTMPMNT/machine.ini ]; then
    # wifi modules are currently required to apply settings (TODO hotplug)
    /etc/init.d/networking_kmod-wifi-rs9113.sh start > /dev/null
    exorint_apply_default_settings network
+   reboot -f
+elif [ -e $FACTORYTMPMNT'shadow.restore' ]; then
+   exorint_apply_default_settings users
    reboot -f
 fi
 
