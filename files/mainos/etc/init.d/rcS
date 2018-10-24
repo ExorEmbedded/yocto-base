@@ -79,6 +79,7 @@ if [ ! -e $FACTORYTMPMNT'shadow' ] ; then
   mount -o remount,rw $FACTORYTMPMNT
   cp -a /etc/shadow $FACTORYTMPMNT'shadow'
   chgrp shadow $FACTORYTMPMNT'shadow'
+  touch $FACTORYTMPMNT'shadow.restore'
   mount -o remount,ro $FACTORYTMPMNT
 fi
 
@@ -166,6 +167,9 @@ if [ ! -e /etc/configured -a -e $FACTORYTMPMNT/machine.ini ]; then
    reboot -f
 elif [ ! -e /etc/network/interfaces -a -e $FACTORYTMPMNT/machine.ini ]; then
    exorint_apply_default_settings network
+   reboot -f
+elif [ -e $FACTORYTMPMNT'shadow.restore' ]; then
+   exorint_apply_default_settings users
    reboot -f
 fi
 
