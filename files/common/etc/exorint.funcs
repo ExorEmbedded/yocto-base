@@ -263,10 +263,19 @@ exorint_apply_default_settings()
       services)
          what=$(($what | 0x4))
          ;;
+      users)
+         what=$(($what | 0x8))
+         ;;
       esac
    done
 
-   [ "$what" -eq 0 ] && what=$((0xff))
+   [ "$what" -eq 0 ] && what=$((0x1 | 0x2 | 0x3))
+   if [ -e "/mnt/factory/shadow.restore" ]; then
+      what=$(($what | 0x8))
+      mount -o remount,rw /mnt/factory
+      rm /mnt/factory/shadow.restore
+      mount -o remount,ro /mnt/factory
+   fi
 
    ( pidof psplash ) && psplash-write "QUIT" && sleep 2
 
