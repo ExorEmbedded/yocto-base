@@ -269,7 +269,9 @@ exorint_apply_default_settings()
       esac
    done
 
-   [ "$what" -eq 0 ] && what=$((0x1 | 0x2 | 0x3))
+   # The default is everything except users
+   [ "$what" -eq 0 ] && what=$(( 0xff & ~0x8 ))
+
    if [ -e "/mnt/factory/shadow.restore" ]; then
       what=$(($what | 0x8))
       mount -o remount,rw /mnt/factory
