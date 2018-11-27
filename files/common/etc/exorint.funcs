@@ -67,6 +67,14 @@ exorint_ver_type()
             return
     fi
 
+    # Carrier name X5xx is used for HandHeld and BaseStation
+    # We use the HwCode for distinguish there
+    if [ $(exorint_hwcode) == "137" ]
+    then
+        echo -n "DEVICE"
+            return
+    fi
+
     case $(exorint_ver_carrier) in
         PLCM)
             echo -n "ROUTER"
@@ -78,13 +86,6 @@ exorint_ver_type()
             echo -n "HMI"
             ;;
     esac
-
-    # Carrier name X5xx is used for HandHeld and BaseStation
-    # We use the HwCode for distinguish there
-    if [ $(exorint_hwcode) == "137" ]
-    then
-        echo -n "DEVICE"
-    fi
 
 }
 
