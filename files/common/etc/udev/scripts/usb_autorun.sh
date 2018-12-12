@@ -1,24 +1,23 @@
 #!/bin/bash
 
 SCRIPT=autoexec.sh
-
-# consistency check: avoid running multiple scripts in parallel
-[ "`ps ax | grep $0 | grep $1\$ | wc -l `" != "2" ] && exit
+FLAGFILE=/tmp/autorun
 
 # consistecy check : are we executing the script from the deviced signalled by kernel?
 cat /proc/mounts | grep "$DEVNAME " | grep "/mnt/$1 " || exit
 
-echo > /tmp/autorun
+# consistency check: avoid running multiple scripts in parallel
+[ -e $FLAGFILE -a -d "/proc/$( head -n1 $FLAGFILE )" ] && exit
 
 autorun() {
-    # wait until the system has boot (no rc scripts running up to 30 seconds)
+    # wait until the system has boot (no rc scripts running up to 20 seconds)
     for i in `seq 1 20` ; do
         XX="`ps aux`" ; if  ! ( echo $XX | grep "/rc " ) ; then
-		echo "AUTORUN BREAK" >> /tmp/autorun
 		break;
 	else
 		sleep 1
-		echo "Waiting system boot complete before starting autorun.sh script $1 ..." | logger -t "AUTORUN"
+		cat /proc/mounts | grep "$DEVNAME " | grep "/mnt/$1 " || exit
+		echo "Waiting system boot complete before starting $SCRIPT script $1 ..." | logger -t "AUTORUN"
 	fi
     done
 
@@ -41,3 +40,4 @@ autorun() {
 }
 
 autorun $@ &
+echo $! > $FLAGFILE
