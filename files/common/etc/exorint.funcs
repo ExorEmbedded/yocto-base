@@ -328,6 +328,19 @@ exorint_apply_default_settings()
        udevadm settle
    fi
 
+   # Make sure syslog is running
+   if ! ( pidof syslogd ); then
+       /etc/init.d/syslog start
+   fi
+
+   # Wifi modules are currently required to apply settings (TODO hotplug)
+   /etc/init.d/networking_kmod-wifi-rs9113.sh start > /dev/null
+
+   # Make sure hostname file is written for default
+   /etc/init.d/hostname.sh start
+
+   sleep 3
+
    res="$( dbus-send --print-reply --system --dest=com.exor.EPAD '/' com.exor.EPAD.applyDefaultSettings string:"/mnt/factory/machine.ini" int32:$what | awk 'FNR == 2 {print $2}' )"
 
    # Even if configuration failed we have to consider this step done
