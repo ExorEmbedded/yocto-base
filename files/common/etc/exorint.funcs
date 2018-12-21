@@ -11,12 +11,16 @@ if [[ ${#BSP_VERSION} -ne 17 && ${#BSP_VERSION} -ne 19 ]]; then
     exit 1
 fi
 
-# Read the hw code from SEEPROM
-HW_CODE="$(dd if=/sys/class/i2c-dev/i2c-0/device/0-0054/eeprom bs=1 count=1 skip=4 2>/dev/null | hexdump -e '16/1 "%02d"' | xargs)"
-
 exorint_hwcode()
 {
-    echo -n "${HW_CODE}"
+    # Read the hw code from SEEPROM (once)
+    local cache="/tmp/exorint/hwcode"
+    if [ ! -e ${cache} ]; then
+        mkdir -p $(dirname ${cache})
+        dd if=/sys/class/i2c-dev/i2c-0/device/0-0054/eeprom bs=1 count=1 skip=4 2>/dev/null | hexdump -e '16/1 "%02d"' | xargs > ${cache}
+    fi
+
+    cat "${cache}"
 }
 
 # e.g. "UN60"
@@ -58,35 +62,33 @@ exorint_ver_build()
 # Get product type based on carrier
 exorint_ver_type()
 {
-
-    # We want to identify the eXware as ROUTER. As the carrier name is the same as
-    # the eX705 we need to use the hw code to distinguish between the two.
-    # 127 is the eXware hw code.
-    if [ -n "$HW_CODE" -a "$HW_CODE" -eq "127" ]; then
+    case $(exorint_hwcode) in
+        # We want to identify the eXware as ROUTER. As the carrier name is the same as
+        # the eX705 we need to use the hw code to distinguish between the two.
+        # 127 is the eXware hw code.
+        127)
             echo -n "ROUTER"
-            return
-    fi
-
-    # Carrier name X5xx is used for HandHeld and BaseStation
-    # We use the HwCode for distinguish there
-    if [ $(exorint_hwcode) == "137" ]
-    then
-        echo -n "DEVICE"
-            return
-    fi
+            return ;;
+        # Carrier name X5xx is used for HandHeld and BaseStation
+        # We use the HwCode for distinguish there
+        137)
+            echo -n "DEVICE"
+            return ;;
+        *)
+            ;;
+    esac
 
     case $(exorint_ver_carrier) in
         PLCM)
             echo -n "ROUTER"
-            ;;
+            return ;;
         NA16|PA18)
             echo -n "DEVICE"
-            ;;
+            return ;;
         *)
             echo -n "HMI"
-            ;;
+            return ;;
     esac
-
 }
 
 # Returns 0 if we are in mainos
