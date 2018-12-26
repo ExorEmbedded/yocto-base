@@ -16,7 +16,9 @@ $SYSPARAMSCMD -w network/wifi/autostartInterfaces "wifi0"
 
 # interfaces are stored in an array for compatibility with JSON REST API
 $SYSPARAMSCMD -w network/wifi/interfaces/size "1"
+$SYSPARAMSCMD -w network/wifi/interfaces/1/name "wifi0"
 $SYSPARAMSCMD -w network/wifi/interfaces/1/enabled "true"
+$SYSPARAMSCMD -w network/wifi/interfaces/1/mode "STA"
 
 CHOSEN="/tmp/post.sh-chosen"
 grep -A 6 '"chosen":' $PRESERVEDPATH/etc/jmuconfig/network.json > $CHOSEN
