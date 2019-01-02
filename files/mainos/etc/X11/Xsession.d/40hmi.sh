@@ -48,8 +48,6 @@ if [[ ! -e /etc/jmlauncher/ ]] ; then
 	mkdir /etc/jmlauncher
 fi
 
-FASTBOOT_KIOSK=0
-
 if [[ -e /etc/nokiosk ]] ; then
 	echo "HMI: NOKIOSK" | logger
 	# starts the HMI
@@ -58,10 +56,8 @@ if [[ -e /etc/nokiosk ]] ; then
 	dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchDesktop
 	dbus-send --system --print-reply --dest=com.exor.EPAD '/' com.exor.EPAD.updateCursorVisibility
 else
-
     if [ ! -z "$FASTBOOT" ] && [ -e "/mnt/data/hmi/$FASTBOOT/run.sh" ] && [ "$apps_to_launch" -eq "1" ] && [ "$FASTBOOT" == "$app_to_launch_name" ]; then
         echo "HMI: KIOSK - FASTBOOT" | logger
-        FASTBOOT_KIOSK=1
 
         # Without codesys JMobile is able to handle starting on a RO location.
         # In this case we can defer data partition fsck and RW remount to speed up the boot
@@ -78,6 +74,8 @@ else
 
         cd /mnt/data/hmi/"$FASTBOOT" || return
         ( ./run.sh -kiosk |& logger ) & # ticket 682
+        sleep 20;
+        dbus-send --system --print-reply --dest=com.exor.EPAD '/' com.exor.EPAD.updateCursorVisibility
     else
         echo "HMI: KIOSK" | logger
 
@@ -85,21 +83,8 @@ else
 
         # starts the desktop
         dbus-send --system --print-reply --dest=com.exor.JMLauncher '/' com.exor.JMLauncher.launchHMI | logger
+        sleep 5;
     fi
-
-fi
-
-# force xsplash quit only if overlay is used - otherwise other windows will be
-# stacked on top and the process will die after RUN_TIME_MS (default 2 minutes)
-# if we have us03 scenarios with excessive black we can consider improving this [#1004]
-if [ -e /dev/fb1 ]; then
-    sleep 2
-    xsplash QUIT
-fi
-
-if [ $FASTBOOT_KIOSK -eq 1 ]; then
-    dbus-send --system --print-reply --dest=com.exor.EPAD '/' com.exor.EPAD.updateCursorVisibility
-    sleep 20
 fi
 
 if [ "$carrier" == "WU16" ]
