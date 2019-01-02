@@ -1,5 +1,3 @@
-echo "Starting Window Manager" | logger
-
 if [ -x $HOME/.Xsession ]; then
     exec $HOME/.Xsession
 elif [ -x /usr/bin/x-session-manager ]; then
