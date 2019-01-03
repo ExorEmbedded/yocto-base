@@ -147,20 +147,22 @@ if [ "$(exorint_ver_type)" = "DEVICE" ]; then
     psplash-write "QUIT"
 fi
 
-if [ -d /sys/class/leds/us01\:fault\:usr0/ ]
+fault_led=$( find  /sys/class/leds/*fault* )
+if [ -d $fault_led ]
 then
     # Blink fault led to know if we are in configos
-    echo timer > /sys/class/leds/us01\:fault\:usr0/trigger
-    echo 100 > /sys/class/leds/us01\:fault\:usr0/delay_on
-    echo 1000 > /sys/class/leds/us01\:fault\:usr0/delay_off
+    echo timer > $fault_led/trigger
+    echo 100 >   $fault_led/delay_on
+    echo 1000 >  $fault_led/delay_off
 fi;
 
-if [ -d /sys/class/leds/us03\:fault\:usr0/ ]
+pwr_led=$( find  /sys/class/leds/pwr )
+if [ -d $fault_led ]
 then
     # Blink fault led to know if we are in configos
-    echo timer > /sys/class/leds/us03\:fault\:usr0/trigger
-    echo 100 > /sys/class/leds/us03\:fault\:usr0/delay_on
-    echo 1000 > /sys/class/leds/us03\:fault\:usr0/delay_off
+    echo timer > $pwr_led/trigger
+    echo 200 >   $pwr_led/delay_on
+    echo 200 >  $pwr_led/delay_off
 fi;
 
 # Call all parts in order
