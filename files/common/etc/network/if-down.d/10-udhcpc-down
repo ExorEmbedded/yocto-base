@@ -1,19 +1,7 @@
 #!/bin/bash
 
-kill_pidfile()
-{
-    local pidfile="$1"
-    local pid
-
-    [ -e "${pidfile}" ] || return 0
-    pid=$(cat "${pidfile}")
-
-    echo "killing pid: ${pid}"
-    kill ${pid} 2>/dev/null
-    rm -f "${pidfile}"
-}
-
-kill_pidfile "/var/run/udhcpc-retry.$IFACE.pid"
-kill_pidfile "/var/run/udhcpc.$IFACE.pid"
+pkill -f "udhcpc-retry $IFACE.*"
+pkill -f "udhcpc .*-i $IFACE.*"
+rm -f "/var/run/udhcpc*.$IFACE.pid"
 
 exit 0
