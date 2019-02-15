@@ -25,7 +25,7 @@
 # References
 #   - 3GPP TS 27.007
 
-MODEM_BAUD=3000000
+MODEM_BAUD=$(sys_params -l services/mobile/baud 2>/dev/null)  # EPAD default
 MODEM_PID="/var/run/modem.pid"  # this script is alive only while starting
 MODEM_STATE="/var/run/modem.state"
 MODEM_INITED="/var/run/modem.inited"
@@ -407,7 +407,7 @@ cmd_config()
         [ "${roamingEnabled}" = "false" ] && notify_error ${ERR_ROAMINGBLOCKED}
     fi
 
-    log "Setting speed"
+    info "Setting speed to ${MODEM_BAUD}"
     cmd_send $1 "AT+IPR=${MODEM_BAUD}"
 
     # once baud rate is raised, we can't use serial to detect status
@@ -523,14 +523,16 @@ cmd_restart()
 
 # Used by EPAD to update state
 # Returns connection state and prints:
-# <state>;<rx/tx>
+# <state>;<rx/tx>;<rxe/txe>
 cmd_status()
 {
     if [ -e /sys/class/net/${MODEM_IFACE} ]; then 
         # update stats
         local rx="$(cat /sys/class/net/${MODEM_IFACE}/statistics/rx_bytes)"
         local tx="$(cat /sys/class/net/${MODEM_IFACE}/statistics/tx_bytes)"
-        echo "connected;${rx}/${tx}"
+        local rxoe="$(cat /sys/class/net/${MODEM_IFACE}/statistics/rx_over_errors)"
+        local txoe=0
+        echo "connected;${rx}/${tx};${rxoe}/${txoe}"
         return 3
     fi
     [ ! -e "${MODEM_STATE}" ] && echo "idle" && return 0
