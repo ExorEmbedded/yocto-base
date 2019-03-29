@@ -165,6 +165,27 @@ exorint_swflagarea_bit()
     return 0
 }
 
+# Gets Jumperarea bit value. Returns 1 and a 0 value
+offsetjumperarea_bit()
+{
+    if [ -z "$1" ];then
+        echo 0
+        return 1;
+    fi
+
+    local jumperArea="$(dd if=/sys/bus/i2c/devices/0-0054/eeprom skip=14 bs=1 count=2 2>/dev/null | hexdump -e '16/1 "%02x "')"
+    local rbyte=$(( ${1}/8 +1))
+    local roffset=$(( 1 << ( ${1} & 7) ))
+
+    if [ "$(( 0x$( echo ${jumperArea} | cut -d' ' -f ${rbyte}) & ${roffset} ))" -ne 0 ]; then
+       echo 1
+    else
+       echo 0
+    fi
+
+    return 0
+}
+
 # Activation of quota on data partition
 # $1 data partitin device
 # $2 reserved space
