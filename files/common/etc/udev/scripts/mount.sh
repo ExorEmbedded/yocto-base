@@ -27,19 +27,20 @@ do
 	fi
 done
 
-automount() {
-	if [ -z "$myname" ]; then
-		if [ -z "$ID_FS_LABEL" ]; then
-			name="`basename "$DEVNAME"`"
-		else
-			name="`basename "$ID_FS_LABEL"`"
-		fi
+if [ -z "$myname" ]; then
+	if [ -z "$ID_FS_LABEL" ]; then
+		name="`basename "$DEVNAME"`"
 	else
-		name="$myname"
+		name="`basename "$ID_FS_LABEL"`"
+		[ "$name" == "data" ] && ( df / | sed -n 2p | grep -qv '^/dev' ) && name=data-mmc
 	fi
+else
+	name="$myname"
+fi
 
-	name=${name,,}
+name=${name,,}
 
+automount() {
 	! test -d "/mnt/$name" && mkdir -p "/mnt/$name"
 	# Silent util-linux's version of mounting auto
 	if [ "x`readlink $MOUNT`" = "x/bin/mount.util-linux" ] ;
@@ -77,7 +78,7 @@ if [ "$ACTION" = "add" ] && [ -n "$DEVNAME" ] && [ -n "$ID_FS_TYPE" ]; then
 	elif [ -x $MOUNT ]; then
 		$MOUNT $MOUNT_ARGS $DEVNAME 2> /dev/null
 	fi
-	
+
 	# If the device isn't mounted at this point, it isn't
 	# configured in fstab (note the root filesystem can show up as
 	# /dev/root in /proc/mounts, so check the device number too)
@@ -91,20 +92,8 @@ if [ "$ACTION" = "remove" ] && [ -x "$UMOUNT" ] && [ -n "$DEVNAME" ]; then
 	do
 		$UMOUNT -l $mnt # lazy umount in case files are in use
 	done
-	
+
 	# Remove empty directories from auto-mounter
-	if [ -z "$myname" ]; then
-		if [ -z "$ID_FS_LABEL" ]; then
-			name="`basename "$DEVNAME"`"
-		else
-			name="`basename "$ID_FS_LABEL"`"
-		fi
-	else
-		name="$myname"
-	fi  
-
-	name=${name,,}
-
 	test -e "/tmp/.automount-$name" && rm_dir "/mnt/$name"
 fi
 
