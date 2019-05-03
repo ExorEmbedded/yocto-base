@@ -12,8 +12,16 @@ prevlevel=N
 umask 022
 export PATH runlevel prevlevel
 
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+
+( df / | sed -n 2p | grep -qv '^/dev' ) && LIVE_MODE=1
+
 DATAPARTITION=/dev/mmcblk1p6
 DATATMPMNT=/mnt/data/
+DATATMPMNTLIVE=/mnt/data-mmc/
+DATAMNT=$DATATMPMNT
+[ -n "$LIVE_MODE" ] && DATAMNT=$DATATMPMNTLIVE
 
 MAINOSPARTITION=/dev/mmcblk1p3
 MAINOSTMPMNT=/mnt/mainos/
@@ -24,10 +32,6 @@ FACTORYPARTITION=/dev/mmcblk1p1
 FACTORYTMPMNT=/mnt/factory/
 
 CMDFILE=$DATATMPMNT/updateCmd
-
-# Mount system fs
-mount -t proc proc /proc
-mount -t sysfs sysfs /sys
 
 #1024 Reboot system if ipu problem
 /bin/dmesg | /bin/grep "timeout when waiting for flip irq" -q
@@ -69,10 +73,17 @@ umount $ETCTMPMNT
 rmdir $ETCTMPMNT
 
 # Post-processing - setup other links to factory (global settings)
-[ ! -L /etc/pointercal.xinput ] && ln -sf $FACTORYTMPMNT/etc/pointercal.xinput /etc/pointercal.xinput
-[ ! -L /etc/rotation ] && ln -sf $FACTORYTMPMNT/etc/rotation /etc/rotation
-[ ! -L /etc/X11/xorg.conf.d/x11-rotate.conf ] && mkdir -p /etc/X11/xorg.conf.d && \
-    ln -sf $FACTORYTMPMNT/etc/X11/xorg.conf.d/x11-rotate.conf /etc/X11/xorg.conf.d/x11-rotate.conf
+if [ -z LIVE_MODE ]; then
+	[ ! -L /etc/pointercal.xinput ] && ln -sf $FACTORYTMPMNT/etc/pointercal.xinput /etc/pointercal.xinput
+	[ ! -L /etc/rotation ] && ln -sf $FACTORYTMPMNT/etc/rotation /etc/rotation
+	[ ! -L /etc/X11/xorg.conf.d/x11-rotate.conf ] && mkdir -p /etc/X11/xorg.conf.d && \
+		ln -sf $FACTORYTMPMNT/etc/X11/xorg.conf.d/x11-rotate.conf /etc/X11/xorg.conf.d/x11-rotate.conf
+else
+	[ -e $FACTORYTMPMNT/etc/pointercal.xinput ] && cp $FACTORYTMPMNT/etc/pointercal.xinput /etc/pointercal.xinput
+	[ -e $FACTORYTMPMNT/etc/rotation ] && cp $FACTORYTMPMNT/etc/rotation /etc/rotation
+	[ -e $FACTORYTMPMNT/etc/X11/xorg.conf.d/x11-rotate.conf ] && mkdir -p /etc/X11/xorg.conf.d && \
+		cp  $FACTORYTMPMNT/etc/X11/xorg.conf.d/x11-rotate.conf /etc/X11/xorg.conf.d/x11-rotate.conf
+fi
 
 # Read screen rotation settings
 rotation=0
@@ -105,8 +116,11 @@ if [ ! -e $FACTORYTMPMNT'shadow' ] ; then
   mount -o remount,ro $FACTORYTMPMNT
 fi
 
-# creates a link
-ln -s -b $FACTORYTMPMNT'shadow' /etc/shadow
+if [ -z "$LIVE_MODE" ]; then
+	ln -s -b $FACTORYTMPMNT'shadow' /etc/shadow
+else
+	chgrp shadow /etc/shadow
+fi
 
 # Mount mainos and data filesystems
 if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
@@ -115,12 +129,18 @@ if [ "$ENABLE_ROOTFS_FSCK" = "yes" ]; then
 fi
 
 mkdir $MAINOSTMPMNT
-mkdir $DATATMPMNT
 mount -t ext4 -o ro $MAINOSPARTITION $MAINOSTMPMNT
-mount -t ext4 -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
+
+mkdir $DATAMNT
+mount -t ext4 -o usrquota,grpquota $DATAPARTITION $DATAMNT
 if [ $? -ne 0 ]; then
    mke2fs -T ext4 -L "data" $DATAPARTITION
-   mount -t ext4 -o usrquota,grpquota $DATAPARTITION $DATATMPMNT
+   mount -t ext4 -o usrquota,grpquota $DATAPARTITION $DATAMNT
+fi
+
+if [ -n "$LIVE_MODE" ]; then
+	mkdir $DATATMPMNT
+	mount -t tmpfs none $DATATMPMNT
 fi
 
 [ -e $CMDFILE ] && /etc/updateCmd.sh
