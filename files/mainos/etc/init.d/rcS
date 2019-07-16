@@ -79,7 +79,7 @@ if [ ! -e $FACTORYTMPMNT'shadow' ] ; then
   mount -o remount,rw $FACTORYTMPMNT
   cp -a /etc/shadow $FACTORYTMPMNT'shadow'
   chgrp shadow $FACTORYTMPMNT'shadow'
-  touch $FACTORYTMPMNT'shadow.restore'
+  [ -e $FACTORYTMPMNT'machine.ini' ] && touch $FACTORYTMPMNT'shadow.restore'
   mount -o remount,ro $FACTORYTMPMNT
 fi
 

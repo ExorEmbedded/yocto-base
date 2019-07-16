@@ -25,7 +25,7 @@
 # References
 #   - 3GPP TS 27.007
 
-MODEM_BAUD=3000000
+MODEM_BAUD=$(sys_params -l services/mobile/baud 2>/dev/null)  # EPAD default
 MODEM_PID="/var/run/modem.pid"  # this script is alive only while starting
 MODEM_STATE="/var/run/modem.state"
 MODEM_INITED="/var/run/modem.inited"
@@ -78,8 +78,9 @@ cmd_help()
     echo "              restart         restart modem"
     echo "              status          get modem status"
     echo 
-    echo "              dev             get device name (empty string if not detected)"
-    echo "              com             get serial device name (empty string if not detected)"
+    echo "              dev             get device name (returns 1 if not detected)"
+    echo "              comidx          get index of serial device (returns 1 if not detected)"
+    echo "              com             get serial device name (returns 1 if not detected)"
     echo "              on              power up only"
     echo "              off             power off only"
     echo
@@ -99,16 +100,25 @@ cmd_dev()
     die ${ERR_MODEMNOTFOUND}
 }
 
-cmd_com()
+
+cmd_comidx()
 {
     local dev=$1
     local i
     [ -z $1 ] && dev=$(cmd_dev)
 
     [ $? -ne 0 ] && return 1
-    # initialize modem baud rate / 2 plugins for each serial device starting from 1
+    # 2 plugins for each serial device starting from 1
     i=$(echo ${dev} | tr -d /dev/plugin/)
-    echo /dev/com$((i/2+2))
+    echo $((i/2+1))
+}
+
+cmd_com()
+{
+    local idx=$(cmd_comidx)
+    [ $? -ne 0 ] && return 1
+
+    echo /dev/com$((idx+1))
 
     return 0
 }
@@ -404,10 +414,10 @@ cmd_config()
     if [ "${regStat}" = "5" ]; then
         log "Roaming enabled"
         local roamingEnabled="$(/usr/bin/sys_params -r services/mobile/roamingEnabled)"
-        [ "${roamingEnabled}" != "true" ] && notify_error ${ERR_ROAMINGBLOCKED}
+        [ "${roamingEnabled}" = "false" ] && notify_error ${ERR_ROAMINGBLOCKED}
     fi
 
-    log "Setting speed"
+    info "Setting speed to ${MODEM_BAUD}"
     cmd_send $1 "AT+IPR=${MODEM_BAUD}"
 
     # once baud rate is raised, we can't use serial to detect status
@@ -523,14 +533,20 @@ cmd_restart()
 
 # Used by EPAD to update state
 # Returns connection state and prints:
-# <state>;<rx/tx>
+# <state>;<rx/tx>;<rxe/txe>
 cmd_status()
 {
     if [ -e /sys/class/net/${MODEM_IFACE} ]; then 
         # update stats
         local rx="$(cat /sys/class/net/${MODEM_IFACE}/statistics/rx_bytes)"
         local tx="$(cat /sys/class/net/${MODEM_IFACE}/statistics/tx_bytes)"
-        echo "connected;${rx}/${tx}"
+        if [ -e /proc/tty/driver/OMAP-SERIAL ]; then
+            local sinfo="$(cat /proc/tty/driver/OMAP-SERIAL)"
+        elif [ -e /proc/tty/driver/IMX-uart ]; then
+            local sinfo="$(cat /proc/tty/driver/IMX-uart)"
+        fi
+        local oe="$(echo "${sinfo}" | grep ^$(cmd_comidx): | grep -o 'oe:[^ ]*' | cut -d ':' -f 2)"
+        echo "connected;${rx}/${tx};${oe}"
         return 3
     fi
     [ ! -e "${MODEM_STATE}" ] && echo "idle" && return 0

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+ip addr flush dev $IFACE
+exit 0
